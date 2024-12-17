@@ -179,8 +179,8 @@
   k8s_dev_deploy:
     <<: *kubernetes_deploy_job
     stage: dev-deploy
-    # needs:
-    #   - docker_push
+    needs:
+      - docker_push
     script:
       - export KUBECONFIG=$DEV_KUBE_CONFIG
       - kubectl version -o yaml
