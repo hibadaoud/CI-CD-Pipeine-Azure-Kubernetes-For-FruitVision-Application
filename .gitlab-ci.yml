@@ -459,55 +459,6 @@
       - if: $CI_COMMIT_BRANCH == "main"
         when: manual
 
-  update_firebase_config:
-    stage: post-deploy
-    needs:
-      - k8s_prod_deploy
-    # variables:
-    #   INGRESS_URL: https://fruitvision-production.9.141.5.182.nip.io
-    before_script:
-      # Install required dependencies
-      - apt-get update -qq 
-      - apt-get install -y gettext curl jq
-      - envsubst --version
-
-      # Install Google Cloud SDK
-      - curl -sSL https://sdk.cloud.google.com | bash
-      - export PATH="$PATH:/root/google-cloud-sdk/bin"
-    script:
-     - echo $INGRESS_URL
-      # Decode Firebase Service Account Key
-      - echo "$FIREBASE_SERVICE_ACCOUNT_BASE64" | base64 -d > serviceAccountKey.json || echo "Invalid base64 input!"
-
-     # Authenticate with Google Cloud using the Service Account
-      - gcloud auth activate-service-account --key-file=serviceAccountKey.json --quiet
-
-      # Get OAuth 2.0 Access Token
-      - export ACCESS_TOKEN=$(gcloud auth print-access-token --scopes=https://www.googleapis.com/auth/firebase.remoteconfig)
-      - echo "Access Token obtained successfully."
-
-      # Generate Remote Config JSON file
-      - envsubst < remote-config.template.json > remote-config.json
-      - echo "Generated Remote Config JSON:"
-      - cat remote-config.json
-
-      # Deploy Remote Config using Firebase REST API
-      - |
-        curl -X PUT \
-            -H "Authorization: Bearer $ACCESS_TOKEN" \
-            -H "Content-Type: application/json; UTF-8" \
-            -H "If-Match: *" \
-            -d @remote-config.json \
-            "https://firebaseremoteconfig.googleapis.com/v1/projects/$FIREBASE_PROJECT_ID/remoteConfig"
-
-      - echo "Firebase Remote Config updated successfully with new values."
-
-    rules:
-      - if: $CI_COMMIT_BRANCH == "main"
-    environment:
-      name: production
-
-   
 
   k8s_prod_backend_integration_testing:
     stage: prod-deploy
@@ -591,7 +542,55 @@
       - if: $CI_COMMIT_BRANCH == "feature"
         when: never
     
+  update_firebase_config:
+    stage: post-deploy
+    needs:
+      - k8s_prod_fastapi_integration_testing
+      - k8s_prod_backend_integration_testing
+      # - k8s_prod_deploy
+    # variables:
+    #   INGRESS_URL: https://fruitvision-production.9.141.5.182.nip.io
+    before_script:
+      # Install required dependencies
+      - apt-get update -qq 
+      - apt-get install -y gettext curl jq
+      - envsubst --version
 
+      # Install Google Cloud SDK
+      - curl -sSL https://sdk.cloud.google.com | bash
+      - export PATH="$PATH:/root/google-cloud-sdk/bin"
+    script:
+     - echo $INGRESS_URL
+      # Decode Firebase Service Account Key
+      - echo "$FIREBASE_SERVICE_ACCOUNT_BASE64" | base64 -d > serviceAccountKey.json || echo "Invalid base64 input!"
+
+     # Authenticate with Google Cloud using the Service Account
+      - gcloud auth activate-service-account --key-file=serviceAccountKey.json --quiet
+
+      # Get OAuth 2.0 Access Token
+      - export ACCESS_TOKEN=$(gcloud auth print-access-token --scopes=https://www.googleapis.com/auth/firebase.remoteconfig)
+      - echo "Access Token obtained successfully."
+
+      # Generate Remote Config JSON file
+      - envsubst < remote-config.template.json > remote-config.json
+      - echo "Generated Remote Config JSON:"
+      - cat remote-config.json
+
+      # Deploy Remote Config using Firebase REST API
+      - |
+        curl -X PUT \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            -H "Content-Type: application/json; UTF-8" \
+            -H "If-Match: *" \
+            -d @remote-config.json \
+            "https://firebaseremoteconfig.googleapis.com/v1/projects/$FIREBASE_PROJECT_ID/remoteConfig"
+
+      - echo "Firebase Remote Config updated successfully with new values."
+
+    rules:
+      - if: $CI_COMMIT_BRANCH == "main"
+    environment:
+      name: production
 
 
   
