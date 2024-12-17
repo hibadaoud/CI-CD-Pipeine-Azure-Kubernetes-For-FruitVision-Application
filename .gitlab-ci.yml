@@ -14,10 +14,10 @@
     - prod-deploy
     - post-deploy
 
-  # include:
-  #   - template: Jobs/SAST.gitlab-ci.yml
-  #   - component: gitlab.com/gitlab-components/secret-detection/secret-detection@1.0
-  #   - template: Security/Container-Scanning.gitlab-ci.yml
+  include:
+    - template: Jobs/SAST.gitlab-ci.yml
+    - component: gitlab.com/gitlab-components/secret-detection/secret-detection@1.0
+    - template: Security/Container-Scanning.gitlab-ci.yml
 
   variables:
     DOCKER_DRIVER: overlay2
@@ -25,8 +25,8 @@
     IMAGE_VERSION: $CI_PIPELINE_ID
     MONGO_BASE_URI: 'mongodb+srv://fruitvision.5h1qa.mongodb.net/'
     DB_NAME: fruitvision
-    # K8S_IMAGE: $DOCKER_USERNAME/backend:$IMAGE_VERSION
-    K8S_IMAGE: $DOCKER_USERNAME/backend:1587417516
+    K8S_IMAGE: $DOCKER_USERNAME/backend:$IMAGE_VERSION
+    # K8S_IMAGE: $DOCKER_USERNAME/backend:1587417516
     MONGO_USERNAME: mongo
     SCAN_KUBERNETES_MANIFESTS: "true"
     GITLAB_ADVANCED_SAST_ENABLED: 'true'
@@ -67,366 +67,364 @@
       - apk add --no-cache gettext
       - envsubst -V
 
-#   sast:
-#     stage: .pre
+  sast:
+    stage: .pre
 
+  secret_detection:
+    stage: .pre
+    variables:
+      SECRET_DETECTION_HISTORIC_SCAN: "false"
+    rules:
+      - if: $CI_COMMIT_BRANCH == "feature"
+        when: always
+      - if: $CI_COMMIT_BRANCH == "main"
+        when: never
 
-#   secret_detection:
-#     stage: .pre
-#     variables:
-#       SECRET_DETECTION_HISTORIC_SCAN: "false"
-#     rules:
-#       - if: $CI_COMMIT_BRANCH == "feature"
-#         when: always
-#       - if: $CI_COMMIT_BRANCH == "main"
-#         when: never
+  container_scanning:
+    stage: containerization
+    needs:
+      - docker_push
+    variables:
+      CS_IMAGE: docker.io/$DOCKER_USERNAME/backend:$IMAGE_VERSION
+      CS_DOCKERFILE_PATH: "backend/dockerfile"
+      GIT_STRATEGY: fetch
+    rules:
+      - if: $CI_COMMIT_BRANCH == "feature"
+        when: always
+      - if: $CI_COMMIT_BRANCH == "main"
+        when: never
 
+ #Job to install dependencies and run tests
+  test_backend:
+    extends: .prepare_nodejs_environment
+    stage: test
+    script:
+      - npm run test             # Run tests if MongoDB connection is successful
+    artifacts:
+      paths:
+        - backend/test-reports/jest-junit.xml
+      when: always
+      expire_in: 3 days
+      reports:
+        junit: backend/test-reports/jest-junit.xml
 
-#   container_scanning:
-#     stage: containerization
-#     needs:
-#       - docker_push
-#     variables:
-#       CS_IMAGE: docker.io/$DOCKER_USERNAME/backend:$IMAGE_VERSION
-#       CS_DOCKERFILE_PATH: "backend/dockerfile"
-#       GIT_STRATEGY: fetch
-#     rules:
-#       - if: $CI_COMMIT_BRANCH == "feature"
-#         when: always
-#       - if: $CI_COMMIT_BRANCH == "main"
-#         when: never
-
-#  #Job to install dependencies and run tests
-#   test_backend:
-#     extends: .prepare_nodejs_environment
-#     stage: test
-#     script:
-#       - npm run test             # Run tests if MongoDB connection is successful
-#     artifacts:
-#       paths:
-#         - backend/test-reports/jest-junit.xml
-#       when: always
-#       expire_in: 3 days
-#       reports:
-#         junit: backend/test-reports/jest-junit.xml
-
-#   docker_build:
-#     stage: containerization
-#     image: docker:24.0.5
-#     dependencies: []
-#     needs:
-#       - test_backend
-#     services:
-#       - docker:24.0.5-dind
-#     script:
-#       - cd backend
-#       - docker build -t $DOCKER_USERNAME/backend:$IMAGE_VERSION .
-#       - docker images $DOCKER_USERNAME/backend:$IMAGE_VERSION
-#       - mkdir image
-#       - docker save $DOCKER_USERNAME/backend:$IMAGE_VERSION > image/backend-image-$IMAGE_VERSION.tar
-#     artifacts:
-#       paths:
-#         - backend/image
-#       when: on_success
-#       expire_in: 3 days
+  docker_build:
+    stage: containerization
+    image: docker:24.0.5
+    dependencies: []
+    needs:
+      - test_backend
+    services:
+      - docker:24.0.5-dind
+    script:
+      - cd backend
+      - docker build -t $DOCKER_USERNAME/backend:$IMAGE_VERSION .
+      - docker images $DOCKER_USERNAME/backend:$IMAGE_VERSION
+      - mkdir image
+      - docker save $DOCKER_USERNAME/backend:$IMAGE_VERSION > image/backend-image-$IMAGE_VERSION.tar
+    artifacts:
+      paths:
+        - backend/image
+      when: on_success
+      expire_in: 3 days
     
-#   docker_test:
-#     stage: containerization
-#     image: docker:24.0.5
-#     needs:
-#       - docker_build  # Makes the artifact available from the previous pipeline
-#     services:
-#       - docker:24.0.5-dind
-#     script:
-#       - docker load -i backend/image/backend-image-$IMAGE_VERSION.tar
-#       - docker run --name backend_container_gitlab -d -p 5000:5000  -e MONGO_BASE_URI=$MONGO_BASE_URI -e MONGO_USERNAME=$MONGO_USERNAME -e MONGO_PASSWORD=$MONGO_PASSWORD -e DB_NAME=$DB_NAME $DOCKER_USERNAME/backend:$IMAGE_VERSION
-#       - export IP1=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' backend_container_gitlab)
-#       - echo $IP1
-#       - sleep 10
-#       - RESPONSE=$(docker exec backend_container_gitlab curl -s http://$IP1:5000/nodejs/api/history/live)
-#       - echo $RESPONSE  
-#       - RESPONSE1=$(docker exec backend_container_gitlab curl -s http://$IP1:5000/nodejs/api/history)
-#       - echo $RESPONSE1  
-#       - if echo "$RESPONSE" | grep -q "live"; then echo "Test passed"; else echo "Test failed" && exit 1; fi
+  docker_test:
+    stage: containerization
+    image: docker:24.0.5
+    needs:
+      - docker_build  # Makes the artifact available from the previous pipeline
+    services:
+      - docker:24.0.5-dind
+    script:
+      - docker load -i backend/image/backend-image-$IMAGE_VERSION.tar
+      - docker run --name backend_container_gitlab -d -p 5000:5000  -e MONGO_BASE_URI=$MONGO_BASE_URI -e MONGO_USERNAME=$MONGO_USERNAME -e MONGO_PASSWORD=$MONGO_PASSWORD -e DB_NAME=$DB_NAME $DOCKER_USERNAME/backend:$IMAGE_VERSION
+      - export IP1=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' backend_container_gitlab)
+      - echo $IP1
+      - sleep 10
+      - RESPONSE=$(docker exec backend_container_gitlab curl -s http://$IP1:5000/nodejs/api/history/live)
+      - echo $RESPONSE  
+      - RESPONSE1=$(docker exec backend_container_gitlab curl -s http://$IP1:5000/nodejs/api/history)
+      - echo $RESPONSE1  
+      - if echo "$RESPONSE" | grep -q "live"; then echo "Test passed"; else echo "Test failed" && exit 1; fi
 
-#   docker_push:  
-#     stage: containerization
-#     needs:
-#       - docker_build
-#       - docker_test
-#     image: docker:24.0.5
-#     services:
-#       - docker:24.0.5-dind
-#     script:
-#       -  docker load -i backend/image/backend-image-$IMAGE_VERSION.tar
-#       -  docker login --username=$DOCKER_USERNAME --password=$DOCKER_PASSWORD
-#       -  docker push $DOCKER_USERNAME/backend:$IMAGE_VERSION
+  docker_push:  
+    stage: containerization
+    needs:
+      - docker_build
+      - docker_test
+    image: docker:24.0.5
+    services:
+      - docker:24.0.5-dind
+    script:
+      -  docker load -i backend/image/backend-image-$IMAGE_VERSION.tar
+      -  docker login --username=$DOCKER_USERNAME --password=$DOCKER_PASSWORD
+      -  docker push $DOCKER_USERNAME/backend:$IMAGE_VERSION
 
-#   publish_gitlab_container_registry:  
-#     stage: containerization
-#     needs:
-#       - docker_build
-#       - docker_test
-#     image: docker:24.0.5
-#     services:
-#       - docker:24.0.5-dind
-#     script:
-#       -  docker load -i backend/image/backend-image-$IMAGE_VERSION.tar
-#       -  echo "$CI_REGISTRY -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY_IMAGE"
-#       -  docker login $CI_REGISTRY -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD
-#       -  docker tag $DOCKER_USERNAME/backend:$IMAGE_VERSION $CI_REGISTRY_IMAGE/backend-image:$IMAGE_VERSION 
-#       -  docker images
-#       -  docker push $CI_REGISTRY_IMAGE/backend-image:$IMAGE_VERSION
+  publish_gitlab_container_registry:  
+    stage: containerization
+    needs:
+      - docker_build
+      - docker_test
+    image: docker:24.0.5
+    services:
+      - docker:24.0.5-dind
+    script:
+      -  docker load -i backend/image/backend-image-$IMAGE_VERSION.tar
+      -  echo "$CI_REGISTRY -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY_IMAGE"
+      -  docker login $CI_REGISTRY -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD
+      -  docker tag $DOCKER_USERNAME/backend:$IMAGE_VERSION $CI_REGISTRY_IMAGE/backend-image:$IMAGE_VERSION 
+      -  docker images
+      -  docker push $CI_REGISTRY_IMAGE/backend-image:$IMAGE_VERSION
 
-#   k8s_dev_deploy:
-#     <<: *kubernetes_deploy_job
-#     stage: dev-deploy
-#     # needs:
-#     #   - docker_push
-#     script:
-#       - export KUBECONFIG=$DEV_KUBE_CONFIG
-#       - kubectl version -o yaml
-#       - kubectl config get-contexts
-#       - kubectl get nodes
-#       - export INGRESS_IP=$(kubectl get service -n app-routing-system nginx -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
-#       - echo $INGRESS_IP
-#       - kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.10.1/cert-manager.yaml
-#       - sleep 30
-#       - kubectl get pods -n cert-manager
-#       - kubectl apply -f kubernetes/manifest/$NAMESPACE/clusterIssuer.yaml
-#       - echo "Waiting for ClusterIssuer to be created..."
-#       - kubectl wait --for=condition=Ready clusterissuer --all --timeout=60s
-#       - kubectl get clusterissuer
-#       - kubectl describe clusterissuer letsencrypt
-#       - kubectl -n $NAMESPACE create secret generic mongo-db-creds --from-literal=MONGO_BASE_URI=$MONGO_BASE_URI --from-literal=MONGO_USERNAME=$MONGO_USERNAME --from-literal=MONGO_PASSWORD=$MONGO_PASSWORD --from-literal=DB_NAME=$DB_NAME --save-config --dry-run=client -o yaml | kubectl apply -f -
-#       - for i in kubernetes/manifest/$NAMESPACE/*.yaml; do envsubst < $i | kubectl apply -f -; done
-#       - sleep 30
-#       - kubectl get certificate ingress-local-tls -n $NAMESPACE
-#       - kubectl describe certificate ingress-local-tls -n $NAMESPACE  
-#       - kubectl -n $NAMESPACE get all,secret,ing
-#       - echo "INGRESS_URL=$(kubectl -n $NAMESPACE get ingress fruitvision-ingress-${NAMESPACE} -o jsonpath="{.spec.rules[0].host}")" >> app_ingress_url.env
-#     artifacts:
-#       reports:
-#         dotenv: app_ingress_url.env
-#     environment:
-#       name: development
-#       url: https://$INGRESS_URL
-#     rules:
-#       - if: $CI_COMMIT_BRANCH == "feature"
-#         when: always
-#       - if: $CI_COMMIT_BRANCH == "main"
-#         when: never
+  k8s_dev_deploy:
+    <<: *kubernetes_deploy_job
+    stage: dev-deploy
+    # needs:
+    #   - docker_push
+    script:
+      - export KUBECONFIG=$DEV_KUBE_CONFIG
+      - kubectl version -o yaml
+      - kubectl config get-contexts
+      - kubectl get nodes
+      - export INGRESS_IP=$(kubectl get service -n app-routing-system nginx -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
+      - echo $INGRESS_IP
+      - kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.10.1/cert-manager.yaml
+      - sleep 30
+      - kubectl get pods -n cert-manager
+      - kubectl apply -f kubernetes/manifest/$NAMESPACE/clusterIssuer.yaml
+      - echo "Waiting for ClusterIssuer to be created..."
+      - kubectl wait --for=condition=Ready clusterissuer --all --timeout=60s
+      - kubectl get clusterissuer
+      - kubectl describe clusterissuer letsencrypt
+      - kubectl -n $NAMESPACE create secret generic mongo-db-creds --from-literal=MONGO_BASE_URI=$MONGO_BASE_URI --from-literal=MONGO_USERNAME=$MONGO_USERNAME --from-literal=MONGO_PASSWORD=$MONGO_PASSWORD --from-literal=DB_NAME=$DB_NAME --save-config --dry-run=client -o yaml | kubectl apply -f -
+      - for i in kubernetes/manifest/$NAMESPACE/*.yaml; do envsubst < $i | kubectl apply -f -; done
+      - sleep 30
+      - kubectl get certificate ingress-local-tls -n $NAMESPACE
+      - kubectl describe certificate ingress-local-tls -n $NAMESPACE  
+      - kubectl -n $NAMESPACE get all,secret,ing
+      - echo "INGRESS_URL=$(kubectl -n $NAMESPACE get ingress fruitvision-ingress-${NAMESPACE} -o jsonpath="{.spec.rules[0].host}")" >> app_ingress_url.env
+    artifacts:
+      reports:
+        dotenv: app_ingress_url.env
+    environment:
+      name: development
+      url: https://$INGRESS_URL
+    rules:
+      - if: $CI_COMMIT_BRANCH == "feature"
+        when: always
+      - if: $CI_COMMIT_BRANCH == "main"
+        when: never
 
-#   k8s_dev_backend_integration_testing:
-#     stage: dev-deploy
-#     image: alpine:3.7
-#     needs:
-#       - k8s_dev_deploy
-#     before_script:
-#       - apk --no-cache add curl
-#       - apk --no-cache add jq
-#     script:
-#       - echo $INGRESS_URL
-#       - echo "Waiting for service to stabilize..."
-#       - sleep 30
-#       - RESPONSE1=$(curl -s -k https://$INGRESS_URL/nodejs/api/history/live)
-#       - echo $RESPONSE1
-#       - if echo "$RESPONSE1" | grep -q "live"; then echo "Integration Test passed"; else echo "Integration Test failed" && exit 1; fi
-#     rules:
-#       - if: $CI_COMMIT_BRANCH == "feature"
-#         when: always
-#       - if: $CI_COMMIT_BRANCH == "main"
-#         when: never
+  k8s_dev_backend_integration_testing:
+    stage: dev-deploy
+    image: alpine:3.7
+    needs:
+      - k8s_dev_deploy
+    before_script:
+      - apk --no-cache add curl
+      - apk --no-cache add jq
+    script:
+      - echo $INGRESS_URL
+      - echo "Waiting for service to stabilize..."
+      - sleep 30
+      - RESPONSE1=$(curl -s -k https://$INGRESS_URL/nodejs/api/history/live)
+      - echo $RESPONSE1
+      - if echo "$RESPONSE1" | grep -q "live"; then echo "Integration Test passed"; else echo "Integration Test failed" && exit 1; fi
+    rules:
+      - if: $CI_COMMIT_BRANCH == "feature"
+        when: always
+      - if: $CI_COMMIT_BRANCH == "main"
+        when: never
   
-#   k8s_dev_fastapi_integration_testing:
-#     stage: dev-deploy
-#     image: python:3.12-slim
-#     needs:
-#       - k8s_dev_deploy
-#     before_script:
-#       - apt-get update -qq 
-#       -  apt-get install -y curl jq
-#     script:
-#       - echo $INGRESS_URL
-#       - echo "Waiting for FastAPI service to stabilize..."
-#       - sleep 30
-#       # Upload an image to the analyze endpoint
-#       - |
-#         RESPONSE_POST=$(curl -s -k -X POST https://$INGRESS_URL/analyze/ \
-#         -H "Content-Type: multipart/form-data" \
-#         -F "file=@test_image.jpg")
-#         echo "POST Response: $RESPONSE_POST"
-#       # Extract the filename from the response
-#       - |
-#         FILENAME=$(echo $RESPONSE_POST | jq -r .image_url | awk -F '/' '{print $NF}')
-#         echo "Extracted Filename: $FILENAME"
-#         if [ -z "$FILENAME" ] || [ "$FILENAME" == "null" ]; then
-#           echo "POST Test failed: No filename returned"
-#           exit 1
-#         fi
-#       # Test the GET endpoint using the extracted filename
-#       - |
-#         MAX_RETRIES=5
-#         RETRY_DELAY=10
-#         SUCCESS=false
-#         for i in $(seq 1 $MAX_RETRIES); do
-#           RESPONSE_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X GET https://$INGRESS_URL/get_analyzed_image/$FILENAME)
-#           if [ "$RESPONSE_CODE" -eq 200 ]; then
-#             echo "Integration Test passed: Image was successfully retrieved."
-#             SUCCESS=true
-#             break
-#           else
-#             echo "GET request failed with status $RESPONSE_CODE. Retrying in $RETRY_DELAY seconds... (Attempt $i/$MAX_RETRIES)"
-#             sleep $RETRY_DELAY
-#           fi
-#         done
-#         if [ "$SUCCESS" != "true" ]; then
-#           echo "Integration Test failed: GET request was unsuccessful after $MAX_RETRIES attempts."
-#           exit 1
-#         fi
-#     rules:
-#       - if: $CI_COMMIT_BRANCH == "feature"
-#         when: always
-#       - if: $CI_COMMIT_BRANCH == "main"
-#         when: never
+  k8s_dev_fastapi_integration_testing:
+    stage: dev-deploy
+    image: python:3.12-slim
+    needs:
+      - k8s_dev_deploy
+    before_script:
+      - apt-get update -qq 
+      -  apt-get install -y curl jq
+    script:
+      - echo $INGRESS_URL
+      - echo "Waiting for FastAPI service to stabilize..."
+      - sleep 30
+      # Upload an image to the analyze endpoint
+      - |
+        RESPONSE_POST=$(curl -s -k -X POST https://$INGRESS_URL/analyze/ \
+        -H "Content-Type: multipart/form-data" \
+        -F "file=@test_image.jpg")
+        echo "POST Response: $RESPONSE_POST"
+      # Extract the filename from the response
+      - |
+        FILENAME=$(echo $RESPONSE_POST | jq -r .image_url | awk -F '/' '{print $NF}')
+        echo "Extracted Filename: $FILENAME"
+        if [ -z "$FILENAME" ] || [ "$FILENAME" == "null" ]; then
+          echo "POST Test failed: No filename returned"
+          exit 1
+        fi
+      # Test the GET endpoint using the extracted filename
+      - |
+        MAX_RETRIES=5
+        RETRY_DELAY=10
+        SUCCESS=false
+        for i in $(seq 1 $MAX_RETRIES); do
+          RESPONSE_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X GET https://$INGRESS_URL/get_analyzed_image/$FILENAME)
+          if [ "$RESPONSE_CODE" -eq 200 ]; then
+            echo "Integration Test passed: Image was successfully retrieved."
+            SUCCESS=true
+            break
+          else
+            echo "GET request failed with status $RESPONSE_CODE. Retrying in $RETRY_DELAY seconds... (Attempt $i/$MAX_RETRIES)"
+            sleep $RETRY_DELAY
+          fi
+        done
+        if [ "$SUCCESS" != "true" ]; then
+          echo "Integration Test failed: GET request was unsuccessful after $MAX_RETRIES attempts."
+          exit 1
+        fi
+    rules:
+      - if: $CI_COMMIT_BRANCH == "feature"
+        when: always
+      - if: $CI_COMMIT_BRANCH == "main"
+        when: never
 
 
-#   k8s_stage_deploy:
-#     <<: *kubernetes_deploy_job
-#     stage: stage-deploy
-#     needs:
-#       - docker_push
-#     script:
-#       - temp_kube_config_file=$(printenv KUBECONFIG)
-#       - cat $temp_kube_config_file
-#       - kubectl config get-contexts
-#       - kubectl config use-context fruitvision1/fruitvision:fruitvision-gitlab-agent
-#       - kubectl get po -A
-#       - export INGRESS_IP=$(kubectl get service -n app-routing-system nginx -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
-#       - echo $INGRESS_IP
-#       - kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.10.1/cert-manager.yaml
-#       - sleep 30
-#       - kubectl get pods -n cert-manager
-#       - kubectl apply -f kubernetes/manifest/$NAMESPACE/clusterIssuer.yaml
-#       - echo "Waiting for ClusterIssuer to be created..."
-#       - kubectl wait --for=condition=Ready clusterissuer --all --timeout=60s
-#       - kubectl get clusterissuer
-#       - kubectl describe clusterissuer letsencrypt
-#       - kubectl -n $NAMESPACE create secret generic mongo-db-creds --from-literal=MONGO_BASE_URI=$MONGO_BASE_URI --from-literal=MONGO_USERNAME=$MONGO_USERNAME --from-literal=MONGO_PASSWORD=$MONGO_PASSWORD --from-literal=DB_NAME=$DB_NAME --save-config --dry-run=client -o yaml | kubectl apply -f -
-#       - for i in kubernetes/manifest/$NAMESPACE/*.yaml; do envsubst < $i | kubectl apply -f -; done
-#       - echo "Waiting for Certificate resources to be ready..."
-#       - kubectl wait --for=condition=Ready certificate ingress-local-tls -n $NAMESPACE --timeout=120s
-#       - kubectl get certificate ingress-local-tls -n $NAMESPACE
-#       - kubectl describe certificate ingress-local-tls -n $NAMESPACE  
-#       - kubectl -n $NAMESPACE get all,secret,ing
-#       - echo "INGRESS_URL=$(kubectl -n $NAMESPACE get ingress fruitvision-ingress-${NAMESPACE} -o jsonpath="{.spec.rules[0].host}")" >> app_ingress_url.env
-#     artifacts:
-#       reports:
-#         dotenv: app_ingress_url.env
-#     environment:
-#       name: staging
-#       url: https://$INGRESS_URL
-#     rules:
-#       - if: $CI_COMMIT_BRANCH == "feature"
-#         when: never
-#       - if: $CI_COMMIT_BRANCH == "main"
-#         when: always
+  k8s_stage_deploy:
+    <<: *kubernetes_deploy_job
+    stage: stage-deploy
+    needs:
+      - docker_push
+    script:
+      - temp_kube_config_file=$(printenv KUBECONFIG)
+      - cat $temp_kube_config_file
+      - kubectl config get-contexts
+      - kubectl config use-context fruitvision1/fruitvision:fruitvision-gitlab-agent
+      - kubectl get po -A
+      - export INGRESS_IP=$(kubectl get service -n app-routing-system nginx -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
+      - echo $INGRESS_IP
+      - kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.10.1/cert-manager.yaml
+      - sleep 30
+      - kubectl get pods -n cert-manager
+      - kubectl apply -f kubernetes/manifest/$NAMESPACE/clusterIssuer.yaml
+      - echo "Waiting for ClusterIssuer to be created..."
+      - kubectl wait --for=condition=Ready clusterissuer --all --timeout=60s
+      - kubectl get clusterissuer
+      - kubectl describe clusterissuer letsencrypt
+      - kubectl -n $NAMESPACE create secret generic mongo-db-creds --from-literal=MONGO_BASE_URI=$MONGO_BASE_URI --from-literal=MONGO_USERNAME=$MONGO_USERNAME --from-literal=MONGO_PASSWORD=$MONGO_PASSWORD --from-literal=DB_NAME=$DB_NAME --save-config --dry-run=client -o yaml | kubectl apply -f -
+      - for i in kubernetes/manifest/$NAMESPACE/*.yaml; do envsubst < $i | kubectl apply -f -; done
+      - echo "Waiting for Certificate resources to be ready..."
+      - kubectl wait --for=condition=Ready certificate ingress-local-tls -n $NAMESPACE --timeout=120s
+      - kubectl get certificate ingress-local-tls -n $NAMESPACE
+      - kubectl describe certificate ingress-local-tls -n $NAMESPACE  
+      - kubectl -n $NAMESPACE get all,secret,ing
+      - echo "INGRESS_URL=$(kubectl -n $NAMESPACE get ingress fruitvision-ingress-${NAMESPACE} -o jsonpath="{.spec.rules[0].host}")" >> app_ingress_url.env
+    artifacts:
+      reports:
+        dotenv: app_ingress_url.env
+    environment:
+      name: staging
+      url: https://$INGRESS_URL
+    rules:
+      - if: $CI_COMMIT_BRANCH == "feature"
+        when: never
+      - if: $CI_COMMIT_BRANCH == "main"
+        when: always
 
-#   k8s_stage_backend_integration_testing:
-#     stage: stage-deploy
-#     # image: !reference [k8s_dev_backend_integration_testing, image]
-#     image: alpine:3.7
-#     needs:
-#       - k8s_stage_deploy
-#     # before_script: !reference [k8s_dev_backend_integration_testing, before_script]
-#     before_script: 
-#       - apk --no-cache add curl
-#       - apk --no-cache add jq
-#     script:
-#       - echo $INGRESS_URL
-#       - echo "Waiting for service to stabilize..."
-#       - sleep 30
-#       - RESPONSE1=$(curl -s -k https://$INGRESS_URL/nodejs/api/history/live)
-#       - echo $RESPONSE1
-#       - if echo "$RESPONSE1" | grep -q "live"; then echo "Integration Test passed"; else echo "Integration Test failed" && exit 1; fi
-#     rules:
-#       - if: $CI_COMMIT_BRANCH =~ /^feature\/.*/
-#         when: never
-#       - if: $CI_COMMIT_BRANCH == "main"
-#         when: always
+  k8s_stage_backend_integration_testing:
+    stage: stage-deploy
+    # image: !reference [k8s_dev_backend_integration_testing, image]
+    image: alpine:3.7
+    needs:
+      - k8s_stage_deploy
+    # before_script: !reference [k8s_dev_backend_integration_testing, before_script]
+    before_script: 
+      - apk --no-cache add curl
+      - apk --no-cache add jq
+    script:
+      - echo $INGRESS_URL
+      - echo "Waiting for service to stabilize..."
+      - sleep 30
+      - RESPONSE1=$(curl -s -k https://$INGRESS_URL/nodejs/api/history/live)
+      - echo $RESPONSE1
+      - if echo "$RESPONSE1" | grep -q "live"; then echo "Integration Test passed"; else echo "Integration Test failed" && exit 1; fi
+    rules:
+      - if: $CI_COMMIT_BRANCH =~ /^feature\/.*/
+        when: never
+      - if: $CI_COMMIT_BRANCH == "main"
+        when: always
   
-#   k8s_stage_fastapi_integration_testing:
-#     stage: stage-deploy
-#     # image: !reference [k8s_dev_fastapi_integration_testing, image]
-#     image: python:3.12-slim
-#     needs:
-#       - k8s_stage_deploy
-#     # before_script: !reference [k8s_dev_fastapi_integration_testing, before_script]
-#     before_script:
-#       - apt-get update -qq 
-#       -  apt-get install -y curl jq
-#     script:
-#       - echo $INGRESS_URL
-#       - echo "Waiting for FastAPI service to stabilize..."
-#       - sleep 30
-#       # Upload an image to the analyze endpoint
-#       - |
-#         MAX_RETRIES=5
-#         RETRY_DELAY=10
-#         SUCCESS=false
-#         for i in $(seq 1 $MAX_RETRIES); do
-#           RESPONSE_POST=$(curl -s -k -X POST https://$INGRESS_URL/analyze/ \
-#           -H "Content-Type: multipart/form-data" \
-#           -F "file=@test_image.jpg")
-#           FILENAME=$(echo $RESPONSE_POST | jq -r .image_url | awk -F '/' '{print $NF}')
-#           echo "POST Response: $RESPONSE_POST"
-#           # Extract the filename from the response
-#           echo "Extracted Filename: $FILENAME"
-#           if [ -n "$FILENAME" ] && [ "$FILENAME" != "null" ]; then
-#             echo "POST Test passed: Filename returned successfully."
-#             SUCCESS=true
-#             break
-#           else
-#             echo "POST request failed: No filename returned. Retrying in $RETRY_DELAY seconds... (Attempt $i/$MAX_RETRIES)"
-#             sleep $RETRY_DELAY
-#           fi
-#         done
-#         if [ "$SUCCESS" != "true" ]; then
-#           echo "POST Test failed: Unable to get filename after $MAX_RETRIES attempts."
-#           exit 1
-#         fi
-#       # Test the GET endpoint using the extracted filename
-#       - |
-#         MAX_RETRIES=5
-#         RETRY_DELAY=10
-#         SUCCESS=false
-#         for i in $(seq 1 $MAX_RETRIES); do
-#           RESPONSE_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X GET https://$INGRESS_URL/get_analyzed_image/$FILENAME)
-#           if [ "$RESPONSE_CODE" -eq 200 ]; then
-#             echo "Integration Test passed: Image was successfully retrieved."
-#             SUCCESS=true
-#             break
-#           else
-#             echo "GET request failed with status $RESPONSE_CODE. Retrying in $RETRY_DELAY seconds... (Attempt $i/$MAX_RETRIES)"
-#             sleep $RETRY_DELAY
-#           fi
-#         done
-#         if [ "$SUCCESS" != "true" ]; then
-#           echo "Integration Test failed: GET request was unsuccessful after $MAX_RETRIES attempts."
-#           exit 1
-#         fi
-#     rules:
-#       - if: $CI_COMMIT_BRANCH == "feature"
-#         when: never
-#       - if: $CI_COMMIT_BRANCH == "main"
-#         when: always
+  k8s_stage_fastapi_integration_testing:
+    stage: stage-deploy
+    # image: !reference [k8s_dev_fastapi_integration_testing, image]
+    image: python:3.12-slim
+    needs:
+      - k8s_stage_deploy
+    # before_script: !reference [k8s_dev_fastapi_integration_testing, before_script]
+    before_script:
+      - apt-get update -qq 
+      -  apt-get install -y curl jq
+    script:
+      - echo $INGRESS_URL
+      - echo "Waiting for FastAPI service to stabilize..."
+      - sleep 30
+      # Upload an image to the analyze endpoint
+      - |
+        MAX_RETRIES=5
+        RETRY_DELAY=10
+        SUCCESS=false
+        for i in $(seq 1 $MAX_RETRIES); do
+          RESPONSE_POST=$(curl -s -k -X POST https://$INGRESS_URL/analyze/ \
+          -H "Content-Type: multipart/form-data" \
+          -F "file=@test_image.jpg")
+          FILENAME=$(echo $RESPONSE_POST | jq -r .image_url | awk -F '/' '{print $NF}')
+          echo "POST Response: $RESPONSE_POST"
+          # Extract the filename from the response
+          echo "Extracted Filename: $FILENAME"
+          if [ -n "$FILENAME" ] && [ "$FILENAME" != "null" ]; then
+            echo "POST Test passed: Filename returned successfully."
+            SUCCESS=true
+            break
+          else
+            echo "POST request failed: No filename returned. Retrying in $RETRY_DELAY seconds... (Attempt $i/$MAX_RETRIES)"
+            sleep $RETRY_DELAY
+          fi
+        done
+        if [ "$SUCCESS" != "true" ]; then
+          echo "POST Test failed: Unable to get filename after $MAX_RETRIES attempts."
+          exit 1
+        fi
+      # Test the GET endpoint using the extracted filename
+      - |
+        MAX_RETRIES=5
+        RETRY_DELAY=10
+        SUCCESS=false
+        for i in $(seq 1 $MAX_RETRIES); do
+          RESPONSE_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X GET https://$INGRESS_URL/get_analyzed_image/$FILENAME)
+          if [ "$RESPONSE_CODE" -eq 200 ]; then
+            echo "Integration Test passed: Image was successfully retrieved."
+            SUCCESS=true
+            break
+          else
+            echo "GET request failed with status $RESPONSE_CODE. Retrying in $RETRY_DELAY seconds... (Attempt $i/$MAX_RETRIES)"
+            sleep $RETRY_DELAY
+          fi
+        done
+        if [ "$SUCCESS" != "true" ]; then
+          echo "Integration Test failed: GET request was unsuccessful after $MAX_RETRIES attempts."
+          exit 1
+        fi
+    rules:
+      - if: $CI_COMMIT_BRANCH == "feature"
+        when: never
+      - if: $CI_COMMIT_BRANCH == "main"
+        when: always
 
   k8s_prod_deploy:
     <<: *kubernetes_deploy_job
     stage: prod-deploy
-    # needs:
-    #   - docker_push
-    # when: manual
+    needs:
+      - docker_push
+    when: manual
     script:
       - export KUBECONFIG=$DEV_KUBE_CONFIG
       - kubectl version -o yaml
@@ -511,87 +509,87 @@
 
    
 
-  # k8s_prod_backend_integration_testing:
-  #   stage: prod-deploy
-  #   image: alpine:3.7
-  #   needs:
-  #     - k8s_prod_deploy
-  #   # when: manual
-  #   before_script:
-  #     - apk --no-cache add curl
-  #     - apk --no-cache add jq
-  #   script:
-  #     - echo $INGRESS_URL
-  #     - echo "Waiting for service to stabilize..."
-  #     - sleep 30
-  #     - RESPONSE1=$(curl -s -k https://$INGRESS_URL/nodejs/api/history/live)
-  #     - echo $RESPONSE1
-  #     - if echo "$RESPONSE1" | grep -q "live"; then echo "Integration Test passed"; else echo "Integration Test failed" && exit 1; fi
-  #   rules:
-  #       - if: $CI_COMMIT_BRANCH == "feature"
-  #         when: never    
+  k8s_prod_backend_integration_testing:
+    stage: prod-deploy
+    image: alpine:3.7
+    needs:
+      - k8s_prod_deploy
+    # when: manual
+    before_script:
+      - apk --no-cache add curl
+      - apk --no-cache add jq
+    script:
+      - echo $INGRESS_URL
+      - echo "Waiting for service to stabilize..."
+      - sleep 30
+      - RESPONSE1=$(curl -s -k https://$INGRESS_URL/nodejs/api/history/live)
+      - echo $RESPONSE1
+      - if echo "$RESPONSE1" | grep -q "live"; then echo "Integration Test passed"; else echo "Integration Test failed" && exit 1; fi
+    rules:
+        - if: $CI_COMMIT_BRANCH == "feature"
+          when: never    
   
-  # k8s_prod_fastapi_integration_testing:
-  #   stage: prod-deploy
-  #   image: python:3.12-slim
-  #   needs:
-  #     - k8s_prod_deploy
-  #   # when: manual
-  #   before_script:
-  #     - apt-get update -qq 
-  #     - apt-get install -y curl jq
-  #   script:
-  #     - echo $INGRESS_URL
-  #     - echo "Waiting for FastAPI service to stabilize..."
-  #     - sleep 30
-  #     # Upload an image to the analyze endpoint
-  #     - |
-  #       MAX_RETRIES=5
-  #       RETRY_DELAY=10
-  #       SUCCESS=false
-  #       for i in $(seq 1 $MAX_RETRIES); do
-  #         RESPONSE_POST=$(curl -s -k -X POST https://$INGRESS_URL/analyze/ \
-  #         -H "Content-Type: multipart/form-data" \
-  #         -F "file=@test_image.jpg")
-  #         FILENAME=$(echo $RESPONSE_POST | jq -r .image_url | awk -F '/' '{print $NF}')
-  #         echo "POST Response: $RESPONSE_POST"
-  #         echo "Extracted Filename: $FILENAME"
-  #         if [ -n "$FILENAME" ] && [ "$FILENAME" != "null" ]; then
-  #           echo "POST Test passed: Filename returned successfully."
-  #           SUCCESS=true
-  #           break
-  #         else
-  #           echo "POST request failed: No filename returned. Retrying in $RETRY_DELAY seconds... (Attempt $i/$MAX_RETRIES)"
-  #           sleep $RETRY_DELAY
-  #         fi
-  #       done
-  #       if [ "$SUCCESS" != "true" ]; then
-  #         echo "POST Test failed: Unable to get filename after $MAX_RETRIES attempts."
-  #         exit 1
-  #       fi
-  #     # Test the GET endpoint using the extracted filename
-  #     - |
-  #       MAX_RETRIES=5
-  #       RETRY_DELAY=10
-  #       SUCCESS=false
-  #       for i in $(seq 1 $MAX_RETRIES); do
-  #         RESPONSE_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X GET https://$INGRESS_URL/get_analyzed_image/$FILENAME)
-  #         if [ "$RESPONSE_CODE" -eq 200 ]; then
-  #           echo "Integration Test passed: Image was successfully retrieved."
-  #           SUCCESS=true
-  #           break
-  #         else
-  #           echo "GET request failed with status $RESPONSE_CODE. Retrying in $RETRY_DELAY seconds... (Attempt $i/$MAX_RETRIES)"
-  #           sleep $RETRY_DELAY
-  #         fi
-  #       done
-  #       if [ "$SUCCESS" != "true" ]; then
-  #         echo "Integration Test failed: GET request was unsuccessful after $MAX_RETRIES attempts."
-  #         exit 1
-  #       fi
-  #   rules:
-  #     - if: $CI_COMMIT_BRANCH == "feature"
-  #       when: never
+  k8s_prod_fastapi_integration_testing:
+    stage: prod-deploy
+    image: python:3.12-slim
+    needs:
+      - k8s_prod_deploy
+    # when: manual
+    before_script:
+      - apt-get update -qq 
+      - apt-get install -y curl jq
+    script:
+      - echo $INGRESS_URL
+      - echo "Waiting for FastAPI service to stabilize..."
+      - sleep 30
+      # Upload an image to the analyze endpoint
+      - |
+        MAX_RETRIES=5
+        RETRY_DELAY=10
+        SUCCESS=false
+        for i in $(seq 1 $MAX_RETRIES); do
+          RESPONSE_POST=$(curl -s -k -X POST https://$INGRESS_URL/analyze/ \
+          -H "Content-Type: multipart/form-data" \
+          -F "file=@test_image.jpg")
+          FILENAME=$(echo $RESPONSE_POST | jq -r .image_url | awk -F '/' '{print $NF}')
+          echo "POST Response: $RESPONSE_POST"
+          echo "Extracted Filename: $FILENAME"
+          if [ -n "$FILENAME" ] && [ "$FILENAME" != "null" ]; then
+            echo "POST Test passed: Filename returned successfully."
+            SUCCESS=true
+            break
+          else
+            echo "POST request failed: No filename returned. Retrying in $RETRY_DELAY seconds... (Attempt $i/$MAX_RETRIES)"
+            sleep $RETRY_DELAY
+          fi
+        done
+        if [ "$SUCCESS" != "true" ]; then
+          echo "POST Test failed: Unable to get filename after $MAX_RETRIES attempts."
+          exit 1
+        fi
+      # Test the GET endpoint using the extracted filename
+      - |
+        MAX_RETRIES=5
+        RETRY_DELAY=10
+        SUCCESS=false
+        for i in $(seq 1 $MAX_RETRIES); do
+          RESPONSE_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X GET https://$INGRESS_URL/get_analyzed_image/$FILENAME)
+          if [ "$RESPONSE_CODE" -eq 200 ]; then
+            echo "Integration Test passed: Image was successfully retrieved."
+            SUCCESS=true
+            break
+          else
+            echo "GET request failed with status $RESPONSE_CODE. Retrying in $RETRY_DELAY seconds... (Attempt $i/$MAX_RETRIES)"
+            sleep $RETRY_DELAY
+          fi
+        done
+        if [ "$SUCCESS" != "true" ]; then
+          echo "Integration Test failed: GET request was unsuccessful after $MAX_RETRIES attempts."
+          exit 1
+        fi
+    rules:
+      - if: $CI_COMMIT_BRANCH == "feature"
+        when: never
     
 
 
