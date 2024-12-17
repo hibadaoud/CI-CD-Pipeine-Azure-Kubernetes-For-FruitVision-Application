@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fruitvision-backend-deploy-${NAMESPACE}
+  namespace: ${NAMESPACE}
+  labels:
+    name: fruitvision-backend-deploy-${NAMESPACE}
+    app: fruitvision-app
+spec:
+  replicas: ${REPLICAS}
+  selector:
+    matchLabels:
+      app: fruitvision-app
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: fruitvision-app
+    spec:
+      containers:
+      - image: ${K8S_IMAGE}
+        imagePullPolicy: Always
+        name: backend-container
+        ports:
+        - containerPort: 5000
+          name: http
+          protocol: TCP
+        envFrom:
+        - secretRef:
+            name: mongo-db-creds

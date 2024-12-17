@@ -1,0 +1,33 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fruitvision-ingress-${NAMESPACE}
+  namespace: ${NAMESPACE}
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    # nginx.ingress.kubernetes.io/rewrite-target: /$2
+
+spec:
+    ingressClassName: webapprouting.kubernetes.azure.com 
+    rules:
+    - host: fruitvision-${NAMESPACE}.${INGRESS_IP}.nip.io
+      http:
+        paths:
+        - path: /nodejs 
+          pathType: Prefix
+          backend:
+            service:
+              name: fruitvision-backend-service-${NAMESPACE}
+              port:
+                number: 5000
+        - path: /
+          pathType: Prefix
+          backend:
+            service:
+              name: fruitvision-model-fastapi-service-${NAMESPACE}
+              port:
+                number: 8000
+    tls:
+    - hosts:
+      - fruitvision-${NAMESPACE}.${INGRESS_IP}.nip.io
+      secretName: ingress-local-tls

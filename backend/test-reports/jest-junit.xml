@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="jest tests" tests="18" failures="0" errors="0" time="4.404">
+  <testsuite name="testing Global errorHandler middleware" errors="0" failures="0" skipped="0" timestamp="2024-12-13T09:29:33" time="0.852" tests="5">
+    <testcase classname="testing Global errorHandler middleware should handle validation error correctly" name="testing Global errorHandler middleware should handle validation error correctly" time="0.03">
+    </testcase>
+    <testcase classname="testing Global errorHandler middleware should handle not found error correctly" name="testing Global errorHandler middleware should handle not found error correctly" time="0.002">
+    </testcase>
+    <testcase classname="testing Global errorHandler middleware should handle Unauthorized error correctly" name="testing Global errorHandler middleware should handle Unauthorized error correctly" time="0.001">
+    </testcase>
+    <testcase classname="testing Global errorHandler middleware should handle Forbidden error correctly" name="testing Global errorHandler middleware should handle Forbidden error correctly" time="0.001">
+    </testcase>
+    <testcase classname="testing Global errorHandler middleware should handle server error correctly" name="testing Global errorHandler middleware should handle server error correctly" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="Error Handler Middleware" errors="0" failures="0" skipped="0" timestamp="2024-12-13T09:29:33" time="0.951" tests="5">
+    <testcase classname="Error Handler Middleware should handle validation errors" name="Error Handler Middleware should handle validation errors" time="0.026">
+    </testcase>
+    <testcase classname="Error Handler Middleware should handle not found errors" name="Error Handler Middleware should handle not found errors" time="0.002">
+    </testcase>
+    <testcase classname="Error Handler Middleware should handle unauthorized errors" name="Error Handler Middleware should handle unauthorized errors" time="0.001">
+    </testcase>
+    <testcase classname="Error Handler Middleware should handle forbidden errors" name="Error Handler Middleware should handle forbidden errors" time="0.002">
+    </testcase>
+    <testcase classname="Error Handler Middleware should handle server errors" name="Error Handler Middleware should handle server errors" time="0.003">
+    </testcase>
+  </testsuite>
+  <testsuite name="testing getHistories controller" errors="0" failures="0" skipped="0" timestamp="2024-12-13T09:29:33" time="1.987" tests="4">
+    <testcase classname="testing getHistories controller should respond with status 200 and list of histories" name="testing getHistories controller should respond with status 200 and list of histories" time="0.029">
+    </testcase>
+    <testcase classname="testing getHistories controller should handle errors and pass them to next()" name="testing getHistories controller should handle errors and pass them to next()" time="0.001">
+    </testcase>
+    <testcase classname="create history should return status of 400 when there are errors and pass it to next()" name="create history should return status of 400 when there are errors and pass it to next()" time="0.001">
+    </testcase>
+    <testcase classname="create history should return status of 201 and the history is created" name="create history should return status of 201 and the history is created" time="0.001">
+    </testcase>
+  </testsuite>
+  <testsuite name="Integration testing" errors="0" failures="0" skipped="0" timestamp="2024-12-13T09:29:33" time="3.921" tests="4">
+    <testcase classname="Integration testing should create the history" name="Integration testing should create the history" time="0.224">
+    </testcase>
+    <testcase classname="Integration testing should return 400 for invalid input" name="Integration testing should return 400 for invalid input" time="0.015">
+    </testcase>
+    <testcase classname="Integration testing should handle database errors correctly" name="Integration testing should handle database errors correctly" time="0.005">
+    </testcase>
+    <testcase classname="Integration testing should get all the histories" name="Integration testing should get all the histories" time="0.035">
+    </testcase>
+  </testsuite>
+</testsuites>

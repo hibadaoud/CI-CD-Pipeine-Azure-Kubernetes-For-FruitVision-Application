@@ -1,0 +1,15 @@
+/backend/coverage
+/backend/mongo-data
+/backend/node_modules
+/backend/.env
+/kubernetes/local/
+/kubernetes/fruitvision-local/
+file.yml
+certificates
+gitlab_file
+docker-compose.yml
+/gitlab-ci-pipelines-exporter
+promotehus
+firebase-debug.log
+serviceAccountKey.json
+serviceAccountKey.base64

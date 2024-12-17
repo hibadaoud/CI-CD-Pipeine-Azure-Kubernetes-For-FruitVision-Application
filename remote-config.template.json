@@ -1,0 +1,11 @@
+{
+    "parameters": {
+      "HISTORY_API": {
+        "defaultValue": { "value": "https://${INGRESS_URL}/nodejs" }
+      },
+      "MODEL_API": {
+        "defaultValue": { "value": "https://${INGRESS_URL}" }
+      }
+    }
+  }
+  

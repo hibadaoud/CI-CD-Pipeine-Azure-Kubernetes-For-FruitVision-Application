@@ -1,0 +1,9 @@
+ci_access:
+  projects:
+    - id: fruitvision1/fruitvision
+
+user_access:
+  access_as:
+    agent: {}
+  projects:
+    - id: fruitvision1/fruitvision

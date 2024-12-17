@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fruitvision-model-fastapi-deploy-${NAMESPACE}
+  namespace: ${NAMESPACE}
+  labels:
+    name: fruitvision-model-fastapi-deploy-${NAMESPACE}
+    app: fruitvision-app
+  annotations:
+    container.apparmor.security.beta.kubernetes.io/nginx: "runtime/default"
+    container.seccomp.security.alpha.kubernetes.io/pod: "runtime/default"
+
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: fruitvision-app
+  template:
+    metadata:
+      labels:
+        app: fruitvision-app
+    spec:
+      containers:
+      - name: model-fastapi-container
+        image: hiba25/modele:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+          name: http
+          protocol: TCP
+        env:
+        - name: MODEL_PATH
+          value: "/app/model_path/model_final.pth"
+        - name: BASE_URL
+          value: https://fruitvision-${NAMESPACE}.${INGRESS_IP}.nip.io
+          
+
+
+# AppArmor and Seccomp Annotations:
+#   Purpose: To add a layer of runtime protection for containers against unknown threats by enforcing security policies.
+#   Why: Without these, the containers might be more vulnerable to exploitation.
+
+# runAsNonRoot, runAsUser, and runAsGroup:
+#   Purpose: To ensure the application runs with the least privileges necessary.
+#   Why: Running as root increases the risk of privilege escalation attacks. Non-root users mitigate this.
+
+# Immutable Root Filesystem (readOnlyRootFilesystem):
+#   Purpose: To prevent modifications to the container's filesystem at runtime.
+#   Why: Makes it harder for attackers to add malicious binaries or alter the application.
+
+# Capabilities Management:
+#   Purpose: To minimize the container's access to kernel-level privileges.
+#   Why: Reducing capabilities lowers the risk of exploiting system-level vulnerabilities.
+
+# Resource Limits and Requests:
+#   Purpose: To control resource usage and prevent denial-of-service (DoS) attacks.
+#   Why: Helps balance resources in the cluster and protects against excessive consumption by a single container.
+
+# Disable Automounting Service Account Tokens:
+#   Purpose: To limit access to Kubernetes API tokens by default.
+#   Why: Reduces the attack surface for an API-based intrusion if the container is compromised.
+
+# Service Account Specification:
+#   Purpose: To use a least-privileged service account.
+#   Why: Prevents unnecessary permissions being granted to the pod, adhering to the principle of least privilege.
+
+# Overall Objective:
+#   These changes are implemented to enhance security and resilience of the Kubernetes deployment by reducing potential attack surfaces and ensuring the application operates within a controlled, minimal-privilege environment.
+
+
