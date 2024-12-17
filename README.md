@@ -22,14 +22,7 @@
 
 This repository extends the [FruitVision-AI-Powered-Fruit-Counting-Classification-with-Docker-Containerization-and-Terraform](https://github.com/hibadaoud/FruitVision-AI-Powered-Fruit-Counting-Classification-with-Docker-Containerization-and-Terraform) project, automating and optimizing the **development** and **deployment** processes as mentionned in the future considerations. It creates a **Gitlab CI/CD pipeline** with **development**, **staging** and **production** **environments** and **tests**.
 
-focuses on streamlining the following tasks:  
-
-- **Code Testing**: Ensuring the stability and quality of the code.  
-- **Containerization**: Automating the build, test, and push of Docker images.  
-- **Environment Deployment**: Managing deployments to multiple environments (Development, Staging, Production) using **Kubernetes**.  
-- **Post-Deployment Updates**: Updating external configurations such as Firebase Remote Config.  
-
-This pipeline enhances the **FruitVision project** by automating complex workflows, improving reliability, and reducing deployment time.  
+This pipeline enhances the original project by automating complex workflows, improving reliability, and reducing deployment time.  
 
 
 ## 🔑 **Key Objectives**
@@ -39,7 +32,8 @@ This pipeline enhances the **FruitVision project** by automating complex workflo
 - 🐳 **Dockerization**: Build, test, and package services into portable Docker images.  
 - ☸️ **Kubernetes Deployment**: Deploy services seamlessly across multiple environments (**Dev**, **Staging**, and **Production**) using Kubernetes clusters. 
 - 🔄 **Integration Testing**: Validate the functionality and reliability of all services after deployment.  
-- 🔗 **Post-Deployment Automation**: Dynamically update external configurations to reflect the latest deployments.  
+- 🔗 **Post-Deployment Automation**: Ensure automated deployment of the application by updating the deployment URL dynamically in the Flutter app to ensure seamless deployment.
+ 
 
 ## 🏛️ Architecture
 
