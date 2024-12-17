@@ -24,6 +24,9 @@ This repository extends the [FruitVision-AI-Powered-Fruit-Counting-Classificatio
 
 This pipeline enhances the original project by automating complex workflows, improving reliability, and reducing deployment time.  
 
+### 🌱 **About the Original Project**
+
+The original **FruitVision** project focuses on developing a deep learning computer vision model to detect, classify, and count fruits on trees. The model is integrated into a user-friendly application with a backend (NodeJs) and a persistent database (MongoDB) to track the history of predictions. The application is containerized using Docker and deployed using automated infrastructure provisioning for scalability (Terraform).
 
 ## 🔑 **Key Objectives**
 
@@ -36,6 +39,9 @@ This pipeline enhances the original project by automating complex workflows, imp
  
 
 ## 🏛️ Architecture
+<div align="center">
+    <img src="./images/CICD_pipeline.png" alt="CI/CD pipeline workflow">
+</div>
 
 The CI/CD pipeline follows a **stage-by-stage process** to automate development and deployment. Below is the visual workflow:
 
