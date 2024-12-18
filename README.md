@@ -216,9 +216,13 @@ Once the `stage-deploy` stage on the `main` branch is successful ✅:
 
 ## 👨‍💻 Project by  
 
-<a href="https://github.com/hibadaoud" target="_blank" style="display: inline-block; text-decoration: none;">
+<!-- <a href="https://github.com/hibadaoud" target="_blank" style="display: inline-block; text-decoration: none;">
   <img src="https://github.com/hibadaoud.png" alt="Profile Image" width="100" style="border-radius:50%;"/>
-</a>  
+</a>   -->
+
+<a href="https://https://github.com/hbadaoud/CI-CD-Pipeine-Azure-Kubernetes-For-FruitVision-Application/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=hibadaoud/CI-CD-Pipeine-Azure-Kubernetes-For-FruitVision-Application" />
+</a>
 
 
 
