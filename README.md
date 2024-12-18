@@ -15,7 +15,8 @@
 - [🏛️ Architecture](#️-architecture)  
 - [📝 Stages Breakdown](#-stages-breakdown)  
 - [🔧 Setup and Usage](#-setup-and-usage)  
-- [🔮 Future Considerations](#-future-considerations)  
+- [🔮 Future Considerations](#-future-considerations) 
+- [👨‍💻 Project By](#project-by) 
 
 ---
 ## 📌 **Project Overview**
@@ -99,7 +100,7 @@ The pipeline is divided into two main phases: **Continuous Integration** and **C
 
 ### Prerequisites
 - **GitLab Account**: Free plan is sufficient.  
-- **Cloud Provider**: A cloud provider offering managed Kubernetes services (e.g., Azure Kubernetes Service is used here, leveraging the $100 credit for students enrolled in a university).  
+- **Cloud Provider**: A cloud provider offering managed Kubernetes services (**Azure Kubernetes Service** is used here, leveraging the $100 credit for students enrolled in a university).  
 
 ### Steps to Run
 
@@ -113,8 +114,9 @@ The pipeline is divided into two main phases: **Continuous Integration** and **C
 - Add the GitLab CI/CD variables:  
    - Go to **Settings → CI/CD → Variables → Add variables**:
    - Uncheck the options in the **Flags** field
+
 | **Key**           | **Value**                 | **Visibility**  |
-|--------------------|---------------------------|------------|
+|-------------------|---------------------------|------------|
 | `DOCKER_USERNAME` | `<your_dockerhub_username>` | Visible    |
 | `DOCKER_PASSWORD` | `<your_dockerhub_password>` | Masked     |
 | `MONGO_PASSWORD`  | `<your_mongodb_password>`  | Masked     |
@@ -126,7 +128,7 @@ The pipeline is divided into two main phases: **Continuous Integration** and **C
 - Log in to Azure CLI:
   ```bash
   az login
- ```
+  ```
 - Create the AKS Cluster:
  ```bash
   az aks create --resource-group fruitvision_grp --name FruitVisionCluster --tier free --generate-ssh-keys --node-vm-size Standard_B2s --node-count 2 --enable-app-routing
@@ -139,13 +141,14 @@ The pipeline is divided into two main phases: **Continuous Integration** and **C
  ```
  - Copy the content of the Kubeconfig file and add it to GitLab CI/CD variables:
     - **Key**: DEV_KUBE_CONFIG
+    - **Value**: The content of the Kubeconfig file
     - **Type**: File
     - **Visibility**: Visible
     - **Flags**: uncheck them
 
 #### 5. **Prepare Kubernetes Namespaces**
-- Install `**kubectl**` on your local machine following [this guide.](https://kubernetes.io/docs/tasks/tools/#kubectl)
-- Create namespaces for your environments:
+- Install `kubectl` on your local machine following [this guide.](https://kubernetes.io/docs/tasks/tools/#kubectl)
+- Create namespaces for your environments in your local terminal:
 ```bash
     kubectl create namespace development
     kubectl create namespace staging
@@ -153,10 +156,7 @@ The pipeline is divided into two main phases: **Continuous Integration** and **C
  ```
  #### 6. **Create GitLab Agent for Kubernetes**
 - Go to **Operate → Kubernetes Clusters → Connect a Cluster → Register Agent with the UI**.
-- Enter the agent name:
-```plaintext
-fruitvision-gitlab-agent
-```
+- Enter the agent name: `fruitvision-gitlab-agent`
 - Copy and run the Helm installation code provided by GitLab, in your terminal.
 - Verify the agent connection:
     - Go to **Operate → Kubernetes Clusters**
@@ -164,16 +164,16 @@ fruitvision-gitlab-agent
 
 ### 7. **Set Up Environments in GitLab**
 
-Go to **Operate → Environments → New Environment**:
+- Go to **Operate → Environments → New Environment**:
 
-- **Production**:  
-   - Name: `Production` → Save.  
+    - **Production**:  
+    - Name: `Production` → Save.  
 
-- **Staging**:  
-   - Name: `Staging`.  
-   - GitLab Agent: Select the newly added agent → Save.  
+    - **Staging**:  
+    - Name: `Staging`.  
+    - GitLab Agent: Select the newly added agent → Save.  
 
-Add **Environment-Specific Variables**:
+- Add **Environment-Specific Variables**:
 
 | **Key**     | **Value**      | **Environment** | **Visibility**    |
 |-------------|----------------|-----------------|-------------|
@@ -183,7 +183,7 @@ Add **Environment-Specific Variables**:
 | `REPLICAS`  | `4`            | Staging         | Visible     |
 
 ### 8. **Push the Code to GitLab**
-- Push the files in the cloned directory to the feature branch:
+Push the files in the cloned directory to the feature branch:
 ```bash
 git checkout -b feature
 git push origin feature
@@ -200,11 +200,11 @@ Open a merge request to merge changes into the `main` branch:
 - Assign everything to yourself and create the merge request.  
 
 ### 11. **Accept Merge Request**  
-Once the pipeline on the `feature` branch is successful:  
+Once the pipeline on the `feature` branch is successful ✅:  
 - Accept the Merge request --> This will automatically trigger the CI/CD pipeline on the `main` branch.
 
 ### 12. **Run Production Deployment**  
-Once the `stage-deploy` stage on the `main` branch is successful:  
+Once the `stage-deploy` stage on the `main` branch is successful ✅:  
 - Click on the **prod-deploy** stage to run the production deployment.  
 
 
@@ -212,8 +212,13 @@ Once the `stage-deploy` stage on the `main` branch is successful:
 - Check the deployment URLs, shown in the `prod_deploy' job, in a browser to test the services functionality.  
 - The production deployment URL will be dynamically updated in **Firebase Remote Config** and then fetched by the flutter application. 
 
+## 🔮 Future Considerations
 
-
+## 👨‍💻 Project by
+<a href="https://github.com/hibadaoud>" target="_blank">
+  <img src="https://github.com/hibadaoud>" alt="Profile Image" width="100" style="border-radius:50%;"/>
+</a>  
+**[Hiba Daoud](https://github.com/hibadaoud)**
 
 
 
