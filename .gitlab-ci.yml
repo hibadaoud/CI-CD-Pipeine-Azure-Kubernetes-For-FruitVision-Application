@@ -21,7 +21,6 @@
 
   variables:
     DOCKER_DRIVER: overlay2
-    DOCKER_USERNAME: hiba25
     IMAGE_VERSION: $CI_PIPELINE_ID
     MONGO_BASE_URI: 'mongodb+srv://fruitvision.5h1qa.mongodb.net/'
     DB_NAME: fruitvision
