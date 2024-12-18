@@ -70,14 +70,14 @@ The pipeline is divided into two main phases: **Continuous Integration** and **C
 
 4. **Continuous Deployment & Delivery**  
    - **Dev Deployment**:  
-     - Deploy the diffrent services to the **Development Environment** for initial validation.  
+     - Deploy the different services to the **Development Environment** for initial validation.  
      - Used for coding, testing, and debugging during development.  
      - Run **integration tests** to ensure the deployment works as expected.  
    - **Staging Deployment**:  
-     - Deploy the diffrent services to the **Staging Environment** for final testing.  
+     - Deploy the different services to the **Staging Environment** for final testing.  
      - Perform integration tests to verify stability and functionality before production.  
    - **Production Deployment**:  
-     - Deploy the diffrent services to the **Production Environment** on the **Azure Kubernetes Cluster** with **manual approval** (click-to-deploy).  
+     - Deploy the different services to the **Production Environment** on the **Azure Kubernetes Cluster** with **manual approval** (click-to-deploy).  
      - Validate the live deployment with integration tests.  
    - **Remote Config Update**:  
      - Dynamically update the **deployment URL** in **Firebase Remote Config**.  
@@ -93,5 +93,129 @@ The pipeline is divided into two main phases: **Continuous Integration** and **C
 | **Orchestration**     | Kubernetes                         |
 | **Cloud Deployment**  | Azure Kubernetes Service (AKS)     |
 | **Automation**        | Firebase Remote Config API         |
+
+
+## 🔧 Setup and Usage
+
+### Prerequisites
+- **GitLab Account**: Free plan is sufficient.  
+- **Cloud Provider**: A cloud provider offering managed Kubernetes services (e.g., Azure Kubernetes Service is used here, leveraging the $100 credit for students enrolled in a university).  
+
+### Steps to Run
+
+#### 1. **Clone the Repository**  
+   ```bash
+   git clone https://github.com/hibadaoud/CI-CD-Pipeine-Azure-Kubernetes-For-FruitVision-Application.git
+   cd CI-CD-Pipeine-Azure-Kubernetes-For-FruitVision-Application
+   ```
+#### 2. **Set Up a GitLab Project**
+- Create a new project in GitLab.  
+- Add the GitLab CI/CD variables:  
+   - Go to **Settings → CI/CD → Variables → Add variables**:
+   - Uncheck the options in the **Flags** field
+| **Key**           | **Value**                 | **Visibility**  |
+|--------------------|---------------------------|------------|
+| `DOCKER_USERNAME` | `<your_dockerhub_username>` | Visible    |
+| `DOCKER_PASSWORD` | `<your_dockerhub_password>` | Masked     |
+| `MONGO_PASSWORD`  | `<your_mongodb_password>`  | Masked     |
+| `NAMESPACE`       | `development`             | Visible    |
+| `REPLICAS`        | `2`                       | Visible    |
+
+
+#### 3. **Create an Azure Kubernetes Cluster**
+- Log in to Azure CLI:
+  ```bash
+  az login
+ ```
+- Create the AKS Cluster:
+ ```bash
+  az aks create --resource-group fruitvision_grp --name FruitVisionCluster --tier free --generate-ssh-keys --node-vm-size Standard_B2s --node-count 2 --enable-app-routing
+ ```
+
+ #### 4. **Retrieve the Kubeconfig File**
+ - Fetch the credentials for your AKS cluster:
+ ```bash
+  az aks get-credentials --resource-group fruitvision_grp --name FruitVisionCluster
+ ```
+ - Copy the content of the Kubeconfig file and add it to GitLab CI/CD variables:
+    - **Key**: DEV_KUBE_CONFIG
+    - **Type**: File
+    - **Visibility**: Visible
+    - **Flags**: uncheck them
+
+#### 5. **Prepare Kubernetes Namespaces**
+- Install `**kubectl**` on your local machine following [this guide.](https://kubernetes.io/docs/tasks/tools/#kubectl)
+- Create namespaces for your environments:
+```bash
+    kubectl create namespace development
+    kubectl create namespace staging
+    kubectl create namespace production
+ ```
+ #### 6. **Create GitLab Agent for Kubernetes**
+- Go to **Operate → Kubernetes Clusters → Connect a Cluster → Register Agent with the UI**.
+- Enter the agent name:
+```plaintext
+fruitvision-gitlab-agent
+```
+- Copy and run the Helm installation code provided by GitLab, in your terminal.
+- Verify the agent connection:
+    - Go to **Operate → Kubernetes Clusters**
+    - Ensure the **Configuration** field is set to `.gitlab/agents/fruitvision-gitlab-agent`.
+
+### 7. **Set Up Environments in GitLab**
+
+Go to **Operate → Environments → New Environment**:
+
+- **Production**:  
+   - Name: `Production` → Save.  
+
+- **Staging**:  
+   - Name: `Staging`.  
+   - GitLab Agent: Select the newly added agent → Save.  
+
+Add **Environment-Specific Variables**:
+
+| **Key**     | **Value**      | **Environment** | **Visibility**    |
+|-------------|----------------|-----------------|-------------|
+| `NAMESPACE` | `production`   | Production      | Visible     |
+| `NAMESPACE` | `staging`      | Staging         | Visible     |
+| `REPLICAS`  | `5`            | Production      | Visible     |
+| `REPLICAS`  | `4`            | Staging         | Visible     |
+
+### 8. **Push the Code to GitLab**
+- Push the files in the cloned directory to the feature branch:
+```bash
+git checkout -b feature
+git push origin feature
+```
+
+### 9. **Trigger the Pipeline**  
+This will automatically trigger the CI/CD pipeline on the `feature` branch.
+- Go to **Build → Pipelines**.  
+- Click on the running pipeline to monitor the jobs.  
+
+### 10. **Merge Request**  
+Open a merge request to merge changes into the `main` branch:  
+- Go to **Repository → Code → Feature Branch → Merge Request**.  
+- Assign everything to yourself and create the merge request.  
+
+### 11. **Accept Merge Request**  
+Once the pipeline on the `feature` branch is successful:  
+- Accept the Merge request --> This will automatically trigger the CI/CD pipeline on the `main` branch.
+
+### 12. **Run Production Deployment**  
+Once the `stage-deploy` stage on the `main` branch is successful:  
+- Click on the **prod-deploy** stage to run the production deployment.  
+
+
+### 13. **Verify the Deployment**  
+- Check the deployment URLs, shown in the `prod_deploy' job, in a browser to test the services functionality.  
+- The production deployment URL will be dynamically updated in **Firebase Remote Config** and then fetched by the flutter application. 
+
+
+
+
+
+
 
 
