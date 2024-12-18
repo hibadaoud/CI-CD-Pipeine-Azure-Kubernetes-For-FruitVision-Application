@@ -214,12 +214,11 @@ Once the `stage-deploy` stage on the `main` branch is successful ✅:
 
 ## 🔮 Future Considerations
 
-## 👨‍💻 Project by
+## 👨‍💻 Project by  
 
-<a href="https://github.com/hibadaoud" target="_blank">
+<a href="https://github.com/hibadaoud" target="_blank" style="display: inline-block; text-decoration: none;">
   <img src="https://github.com/hibadaoud.png" alt="Profile Image" width="100" style="border-radius:50%;"/>
 </a>  
-**[Hiba Daoud](https://github.com/hibadaoud)**
 
 
 
