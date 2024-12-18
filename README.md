@@ -39,21 +39,49 @@ The original **FruitVision** project focuses on developing a deep learning compu
  
 
 ## 🏛️ Architecture
+The Gitlab CI/CD pipeline follows a **stage-by-stage process** to automate development and deployment. Below is the visual workflow:
+
 <div align="center">
     <img src="./images/CICD_pipeline.png" alt="CI/CD pipeline workflow">
 </div>
 
-The CI/CD pipeline follows a **stage-by-stage process** to automate development and deployment. Below is the visual workflow:
+The GitLab CI/CD pipeline automates the **integration, testing, and deployment** processes for the application, ensuring reliable and consistent delivery across different environments.
 
-Commit -> Test Code -> Build Docker Image -> Test Docker -> Push Image -> Deploy to Kubernetes -> Integration Tests -> Post-Deploy Config Updates
+The pipeline is divided into two main phases: **Continuous Integration** and **Continuous Deployment & Delivery**.
 
-- The CI/CD pipeline is organized into six key stages, with a focus on **automation** and **validation**:  
+### ⚙️ **Workflow Stages**
 
-1. **Test**: Runs unit tests for the Node.js backend.  
-2. **Containerization**: Builds, tests, and pushes Docker images for backend and model services.  
-3. **Environment Deployment**: Deploys services to **Dev**, **Staging**, and **Production** environments using Kubernetes manifests.  
-4. **Integration Testing**: Validates deployed services by testing API endpoints.  
-5. **Post-Deployment Updates**: Updates Firebase Remote Config dynamically with the new deployment URLs.  
+1. **Create Feature Branch**  
+   - Allows developers to work on new features or bug fixes independently, ensuring the main codebase remains stable.
+
+2. **Continuous Integration**  
+   - **Automated Build and Test**:  
+     - Perform **code quality checks** and **security scans** using Static Application Security Testing (SAST) and Secret Detection.  
+     - Run **Unit Tests** using **Jest** to verify the backend functionality (NodeJS app) and validate the connection to MongoDB. 
+     - If all tests pass:  
+       - Build the **Docker image**.  
+       - Test the Docker image functionality and scan for vulnerabilities.  
+     - **Failure Handling**: If any step fails, the developer must fix the code and push changes again until all checks pass.  
+   - **Push to DockerHub**:  
+     - Store validated and tested Docker images in **DockerHub** for use in deployment.
+
+3. **Merge to Main Branch**  
+   - Merge the validated code changes into the **main branch** to prepare for deployment.
+
+4. **Continuous Deployment & Delivery**  
+   - **Dev Deployment**:  
+     - Deploy the diffrent services to the **Development Environment** for initial validation.  
+     - Used for coding, testing, and debugging during development.  
+     - Run **integration tests** to ensure the deployment works as expected.  
+   - **Staging Deployment**:  
+     - Deploy the diffrent services to the **Staging Environment** for final testing.  
+     - Perform integration tests to verify stability and functionality before production.  
+   - **Production Deployment**:  
+     - Deploy the diffrent services to the **Production Environment** on the **Azure Kubernetes Cluster** with **manual approval** (click-to-deploy).  
+     - Validate the live deployment with integration tests.  
+   - **Remote Config Update**:  
+     - Dynamically update the **deployment URL** in **Firebase Remote Config**.  
+     - The Flutter application automatically fetches the updated backend and model endpoints, enabling seamless and hassle-free deployments for smooth user experiences.  
 
 ## ⚙️ **Technologies Used**
 
