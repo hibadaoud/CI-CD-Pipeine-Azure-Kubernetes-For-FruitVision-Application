@@ -57,11 +57,11 @@ The pipeline is divided into two main phases: **Continuous Integration** and **C
 
 2. **Continuous Integration**  
    - **Automated Build and Test**:  
-     - Perform **code quality checks** and **security scans** using Static Application Security Testing (SAST) and Secret Detection.  
-     - Run **Unit Tests** using **Jest** to verify the backend functionality (NodeJS app) and validate the connection to MongoDB. 
+     - Perform **code quality checks** and **security scans** using `Static Application Security Testing (SAST)` and `Secret Detection`.  
+     - Run **Unit Tests** using `Jest` to verify the backend functionality (NodeJS app) and validate the connection to MongoDB. 
      - If all tests pass:  
        - Build the **Docker image**.  
-       - Test the Docker image functionality and scan for vulnerabilities.  
+       - Test the Docker image functionality and scan for vulnerabilities using `Container Scanning`.
      - **Failure Handling**: If any step fails, the developer must fix the code and push changes again until all checks pass.  
    - **Push to DockerHub**:  
      - Store validated and tested Docker images in **DockerHub** for use in deployment.
@@ -71,11 +71,11 @@ The pipeline is divided into two main phases: **Continuous Integration** and **C
 
 4. **Continuous Deployment & Delivery**  
    - **Dev Deployment**:  
-     - Deploy the different services to the **Development Environment** for initial validation.  
+     - Deploy the different services to the **Development Environment**, on the **Azure Kubernetes Cluster**, for initial validation.  
      - Used for coding, testing, and debugging during development.  
      - Run **integration tests** to ensure the deployment works as expected.  
    - **Staging Deployment**:  
-     - Deploy the different services to the **Staging Environment** for final testing.  
+     - Deploy the different services to the **Staging Environment**, on the **Azure Kubernetes Cluster**,   for final testing.  
      - Perform integration tests to verify stability and functionality before production.  
    - **Production Deployment**:  
      - Deploy the different services to the **Production Environment** on the **Azure Kubernetes Cluster** with **manual approval** (click-to-deploy).  

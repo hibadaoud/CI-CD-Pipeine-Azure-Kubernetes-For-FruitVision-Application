@@ -13,3 +13,17 @@ promotehus
 firebase-debug.log
 serviceAccountKey.json
 serviceAccountKey.base64
+
+FruitVision_application/build/
+FruitVision_application/caches/
+FruitVision_application/.tmp/
+FruitVision_application/.flutter-plugins
+FruitVision_application/flutter-plugins-dependencies
+FruitVision_application/.metadata
+FruitVision_application/wrapper
+
+# Ignore IDE and project-specific files
+FruitVision_application/*.iml
+/.idea/
+
+FruitVision_application/.env
