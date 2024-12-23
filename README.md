@@ -29,6 +29,8 @@ This pipeline enhances the original project by automating complex workflows, imp
 
 The original **FruitVision** project focuses on developing a deep learning computer vision model to detect, classify, and count fruits on trees. The model is integrated into a user-friendly application with a backend (NodeJs) and a persistent database (MongoDB) to track the history of predictions. The application is containerized using Docker and deployed using automated infrastructure provisioning for scalability (Terraform).
 
+To achieve this, test files and dependencies were added to the backend folder (`/backend/tests`) for validating functionality. Additionally, updates were made to the Flutter application code to ensure seamless deployment and integration with the deployed services.
+
 ## 🔑 **Key Objectives**
 
 - 🛡️ **Security and Vulnerability Scanning**: Ensure code, secrets, and container images are secure by identifying and mitigating vulnerabilities during the CI/CD pipeline.  
@@ -211,6 +213,18 @@ Once the `stage-deploy` stage on the `main` branch is successful ✅:
 ### 13. **Verify the Deployment**  
 - Check the deployment URLs, shown in the `prod_deploy' job, in a browser to test the services functionality.  
 - The production deployment URL will be dynamically updated in **Firebase Remote Config** and then fetched by the flutter application. 
+
+### 14. **Run Flutter Application**:
+   - Navigate to the Flutter root directory and install dependencies:
+     ```bash
+     flutter pub get
+     ```
+
+   - Connect your device/emulator and run the app:
+     ```bash
+     flutter run
+     ```
+   - Check if the deployed urls are added automatically and the services are working as expected.
 
 ## 🔮 Future Considerations
 
