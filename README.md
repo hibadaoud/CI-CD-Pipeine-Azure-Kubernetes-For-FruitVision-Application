@@ -155,7 +155,7 @@ Below is the architecture illustrating the Kubernetes deployment and traffic flo
 ```mermaid
 graph LR
   subgraph External Traffic
-    User -->|Requests to fruitvision-$NAMESPACE.$INGRESS_IP.nip.io| Ingress[Ingress Controller]
+    User -->|Requests to<br>fruitvision-$NAMESPACE.$INGRESS_IP.nip.io| Ingress[Ingress Controller]
   end
   
   subgraph Kubernetes Cluster
