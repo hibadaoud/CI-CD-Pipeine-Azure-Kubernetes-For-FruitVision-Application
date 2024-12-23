@@ -108,11 +108,7 @@ The Kubernetes architecture for the FruitVision project facilitates **scalable, 
    - **Services**: Enable internal communication and expose pods to external traffic.  
 
 2. **Dynamic Traffic Routing**: Use **Ingress** to expose services to the internet with **SSL/TLS termination** provided by **Let's Encrypt**, ensuring secure and efficient traffic handling.  
-   - Ingress is suitable for exposing **multiple services under a single domain** or for setting up more complex routing rules, such as:  
-     ```
-     fruitvision-${NAMESPACE}.${INGRESS_IP}.nip.io
-     ```
-   - This URL ensures that requests are routed appropriately based on the namespace environment.
+Ingress is suitable for exposing **multiple services under a single domain** or for setting up more complex routing rules.
 
 3. **Multi-Environment Support**: Support **distinct isolated** environments using namespaces and configurable replicas for resource scaling:
    - Each environment (development, staging, and production) operates in its own **namespace**.  
@@ -122,8 +118,6 @@ The Kubernetes architecture for the FruitVision project facilitates **scalable, 
 4. **Stability and Recovery**:
    - Rollback functionality ensures stability by enabling a return to a previous deployment in case of issues.  
    - Minimizes downtime and preserves reliability for end users.  
-
----
 
 ### Kubernetes Components
 The deployment uses the following components:
@@ -139,10 +133,15 @@ The deployment uses the following components:
 3. **Ingress**:
    - Use **Azure Kubernetes Ingress Controller** (`webapprouting.kubernetes.azure.com`) for routing traffic to services.
    - Provide secure HTTPS access to services with **TLS certificates** from **Let's Encrypt** (`clusterIssuer.yaml`).
-   - Suitable for routing requests under URLs such as:  
+   - Suitable for routing requests under the URL :  
      ```
      fruitvision-${NAMESPACE}.${INGRESS_IP}.nip.io
      ```
+   - This URL ensures that requests are routed appropriately based on the namespace environment `${NAMESPACE}` .
+   - The **Ingress IP** is the public IP address assigned to the **Azure Kubernetes Ingress Controller**. It serves as the entry point for all external traffic directed to the Kubernetes cluster. It can be obtained by:
+    ```
+    INGRESS_IP=$(kubectl get service -n app-routing-system nginx -o jsonpath="{.status.loadBalancer.ingress[0].ip}")
+    ```
 
 4. **Secrets**:
    - Store sensitive credentials (e.g., MongoDB connection details) securely using Kubernetes Secrets.
@@ -150,15 +149,13 @@ The deployment uses the following components:
 5. **Namespaces**:
    - Isolate environments to prevent configuration conflicts between development, staging, and production.
 
----
-
 ### Architecture Diagram
 Below is the architecture illustrating the Kubernetes deployment and traffic flow:
 
 ```mermaid
 graph LR
   subgraph External Traffic
-    User -->|Requests to fruitvision-${NAMESPACE}.${INGRESS_IP}.nip.io| Ingress[Ingress Controller]
+    User -->|Requests to fruitvision-$NAMESPACE.$INGRESS_IP.nip.io| Ingress[Ingress Controller]
   end
   
   subgraph Kubernetes Cluster
