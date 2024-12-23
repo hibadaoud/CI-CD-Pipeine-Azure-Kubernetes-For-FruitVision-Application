@@ -103,48 +103,43 @@ The pipeline is divided into two main phases: **Continuous Integration** and **C
 The Kubernetes architecture for the FruitVision project facilitates **scalable, secure, and automated deployment** of application services across multiple environments: **development**, **staging**, and **production**. Using Kubernetes Ingress, services are exposed to external users with load balancing and HTTPS encryption.
 
 ### Goals
-1. **Service Management**: Efficiently manage multiple services (backend and model) using Kubernetes resources such as Deployments, Services, and ConfigMaps.
-2. **Dynamic Traffic Routing**: Use **Ingress** to expose services to the internet with SSL/TLS termination provided by **Let's Encrypt**.
-3. **Multi-Environment Support**: Support distinct environments (development, staging, production) using namespaces and configurable replicas for resource scaling.
-4. **Integration with CI/CD Pipeline**: Automate deployment and scaling through GitLab CI/CD pipelines for consistent and reliable service delivery.
+1. **Service Management**: Efficiently manage multiple services (backend and model) using Kubernetes resources such as:
+   - **Deployments**: Ensure high availability and scalability of application pods.  
+   - **Services**: Enable internal communication and expose pods to external traffic.  
+
+2. **Dynamic Traffic Routing**: Use **Ingress** to expose services to the internet with SSL/TLS termination provided by **Let's Encrypt**, ensuring secure and efficient traffic handling.
+
+3. **Isolated Environments**:
+   - Each environment (development, staging, and production) operates in its own **namespace**.  
+   - Isolation prevents configuration conflicts and ensures dedicated resources for each stage.  
+   - GitLab provides a complete history of deployments for each environment, allowing for detailed tracking and the ability to **re-deploy** or **roll back** if needed.  
+
+4. **Stability and Recovery**:
+   - Rollback functionality ensures stability by enabling a return to a previous deployment in case of issues.  
+   - Minimizes downtime and preserves reliability for end users.  
 
 ---
 
 ### Kubernetes Components
-The deployment uses the following components:
+The deployment uses the following key components:
 
 1. **Deployments**:
-   - Manage application pods for **backend** and **model** services.
-   - Ensure high availability with configurable replicas (`replicas` in Deployment YAML).
+   - Manage the desired state of application pods for **backend** and **model** services.
+   - Ensure scalability and availability through configurable replicas.
 
 2. **Services**:
-   - Expose backend (`/nodejs`) and model (`/`) services internally using ClusterIP.
-   - Facilitate internal communication between pods.
+   - Expose backend (`/nodejs`) and model (`/`) services internally using ClusterIP.  
+   - Facilitate communication between pods and other Kubernetes resources.
 
 3. **Ingress**:
-   - Use **Azure Kubernetes Ingress Controller** (`webapprouting.kubernetes.azure.com`) for routing traffic to services.
-   - Provide secure HTTPS access to services with TLS certificates from **Let's Encrypt** (`clusterIssuer.yaml`).
+   - Use **Azure Kubernetes Ingress Controller** (`webapprouting.kubernetes.azure.com`) for routing external traffic to services.  
+   - Handle secure HTTPS traffic with TLS certificates from **Let's Encrypt**.
 
 4. **Secrets**:
-   - Store sensitive credentials (e.g., MongoDB connection details) securely using Kubernetes Secrets.
+   - Securely store sensitive credentials like MongoDB connection details.
 
 5. **Namespaces**:
-   - Isolate environments to prevent configuration conflicts between development, staging, and production.
-
----
-
-### Deployment Workflow in CI/CD
-1. **Dev Deployment**:
-   - Services are deployed to the **development namespace** for initial testing and validation.
-   - Integration tests validate the correctness of the backend and model APIs.
-
-2. **Staging Deployment**:
-   - Services are deployed to the **staging namespace** for pre-production testing.
-   - Final integration tests ensure readiness for production.
-
-3. **Production Deployment**:
-   - Services are deployed to the **production namespace** with manual approval for live use.
-   - The deployment URL is dynamically updated in **Firebase Remote Config**, ensuring seamless integration with the Flutter application.
+   - Separate environments into distinct namespaces to avoid conflicts and allow parallel deployments.
 
 ---
 
