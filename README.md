@@ -78,7 +78,7 @@ The pipeline is divided into two main phases: **Continuous Integration** and **C
      - Run **integration tests** to ensure the deployment works as expected.  
    - **Staging Deployment**:  
      - Deploy the different services to the **Staging Environment**, on the **Azure Kubernetes Cluster**,   for final testing.  
-     - Perform integration tests to verify stability and functionality before production.  
+     - Perform **integration tests** to verify stability and functionality before production.  
    - **Production Deployment**:  
      - Deploy the different services to the **Production Environment** on the **Azure Kubernetes Cluster** with **manual approval** (click-to-deploy).  
      - Validate the live deployment with integration tests.  
@@ -92,10 +92,81 @@ The pipeline is divided into two main phases: **Continuous Integration** and **C
 |------------------------|------------------------------------|
 | **CI/CD**             | GitLab CI/CD                       |
 | **Testing**           | Jest (Node.js Backend)             |
-| **Containerization**  | Docker, Docker Compose             |
+| **Containerization**  | Docker             |
 | **Orchestration**     | Kubernetes                         |
 | **Cloud Deployment**  | Azure Kubernetes Service (AKS)     |
 | **Automation**        | Firebase Remote Config API         |
+
+## ☸️ Kubernetes Architecture and Deployment
+
+### Overview
+The Kubernetes architecture for the FruitVision project facilitates **scalable, secure, and automated deployment** of application services across multiple environments: **development**, **staging**, and **production**. Using Kubernetes Ingress, services are exposed to external users with load balancing and HTTPS encryption.
+
+### Goals
+1. **Service Management**: Efficiently manage multiple services (backend and model) using Kubernetes resources such as Deployments, Services, and ConfigMaps.
+2. **Dynamic Traffic Routing**: Use **Ingress** to expose services to the internet with SSL/TLS termination provided by **Let's Encrypt**.
+3. **Multi-Environment Support**: Support distinct environments (development, staging, production) using namespaces and configurable replicas for resource scaling.
+4. **Integration with CI/CD Pipeline**: Automate deployment and scaling through GitLab CI/CD pipelines for consistent and reliable service delivery.
+
+---
+
+### Kubernetes Components
+The deployment uses the following components:
+
+1. **Deployments**:
+   - Manage application pods for **backend** and **model** services.
+   - Ensure high availability with configurable replicas (`replicas` in Deployment YAML).
+
+2. **Services**:
+   - Expose backend (`/nodejs`) and model (`/`) services internally using ClusterIP.
+   - Facilitate internal communication between pods.
+
+3. **Ingress**:
+   - Use **Azure Kubernetes Ingress Controller** (`webapprouting.kubernetes.azure.com`) for routing traffic to services.
+   - Provide secure HTTPS access to services with TLS certificates from **Let's Encrypt** (`clusterIssuer.yaml`).
+
+4. **Secrets**:
+   - Store sensitive credentials (e.g., MongoDB connection details) securely using Kubernetes Secrets.
+
+5. **Namespaces**:
+   - Isolate environments to prevent configuration conflicts between development, staging, and production.
+
+---
+
+### Deployment Workflow in CI/CD
+1. **Dev Deployment**:
+   - Services are deployed to the **development namespace** for initial testing and validation.
+   - Integration tests validate the correctness of the backend and model APIs.
+
+2. **Staging Deployment**:
+   - Services are deployed to the **staging namespace** for pre-production testing.
+   - Final integration tests ensure readiness for production.
+
+3. **Production Deployment**:
+   - Services are deployed to the **production namespace** with manual approval for live use.
+   - The deployment URL is dynamically updated in **Firebase Remote Config**, ensuring seamless integration with the Flutter application.
+
+---
+
+### Architecture Diagram
+Below is the architecture illustrating the Kubernetes deployment and traffic flow:
+
+```mermaid
+graph LR
+  subgraph External Traffic
+    User -->|Requests| Ingress[Ingress Controller]
+  end
+  
+  subgraph Kubernetes Cluster
+    Ingress -->|Routes Traffic| BackendService[Backend Service]
+    Ingress -->|Routes Traffic| ModelService[Model Service]
+    
+    BackendService --> BackendPods[Backend Pods]
+    ModelService --> ModelPods[Model Pods]
+  end
+  
+  BackendPods --> MongoDB[MongoDB]
+  ModelPods --> PersistentStorage[Model Weights]
 
 
 ## 🔧 Setup and Usage
