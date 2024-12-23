@@ -167,7 +167,7 @@ graph LR
   
   BackendPods --> MongoDB[MongoDB]
   ModelPods --> PersistentStorage[Model Weights]
-
+```
 
 ## 🔧 Setup and Usage
 
