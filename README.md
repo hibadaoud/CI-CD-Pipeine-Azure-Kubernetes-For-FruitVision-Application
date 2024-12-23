@@ -107,17 +107,19 @@ The Kubernetes architecture for the FruitVision project facilitates **scalable, 
    - **Deployments**: Ensure high availability and scalability of application pods.  
    - **Services**: Enable internal communication and expose pods to external traffic.  
 
-2. **Dynamic Traffic Routing**: Use **Ingress** to expose services to the internet with SSL/TLS termination provided by **Let's Encrypt**, ensuring secure and efficient traffic handling.
-Integration with CI/CD Pipeline: Automate deployment and scaling through GitLab CI/CD pipelines for consistent and reliable service delivery.
+2. **Dynamic Traffic Routing**: Use **Ingress** to expose services to the internet with **SSL/TLS termination** provided by **Let's Encrypt**, ensuring secure and efficient traffic handling.  
+   - Ingress is suitable for exposing **multiple services under a single domain** or for setting up more complex routing rules, such as:  
+     ```
+     fruitvision-${NAMESPACE}.${INGRESS_IP}.nip.io
+     ```
+   - This URL ensures that requests are routed appropriately based on the namespace environment.
 
-3. **Integration with CI/CD Pipeline**: Automate deployment and scaling through GitLab CI/CD pipelines for consistent and reliable service delivery.
-
-4. **Multi-Environment Support**: Support **distinct isolated** environments using namespaces and configurable replicas for resource scaling :
+3. **Multi-Environment Support**: Support **distinct isolated** environments using namespaces and configurable replicas for resource scaling:
    - Each environment (development, staging, and production) operates in its own **namespace**.  
    - Isolation prevents configuration conflicts and ensures dedicated resources for each stage.  
-   - GitLab provides a complete history of deployments for each environment, allowing for detailed tracking and the ability to **re-deploy** or **roll back** if needed.  
+   - GitLab provides a complete history of deployments for each environment, allowing for detailed tracking and the ability to **re-deploy** or **roll back** if needed.
 
-5. **Stability and Recovery**:
+4. **Stability and Recovery**:
    - Rollback functionality ensures stability by enabling a return to a previous deployment in case of issues.  
    - Minimizes downtime and preserves reliability for end users.  
 
@@ -127,7 +129,7 @@ Integration with CI/CD Pipeline: Automate deployment and scaling through GitLab 
 The deployment uses the following components:
 
 1. **Deployments**:
-   - Manage application pods for **backend** and **model** services.
+   - Manage application pods for **backend** and **model** services based on the docker images pushed to DockerHub.
    - Ensure high availability with configurable replicas (`REPLICAS` in deploy.yaml).
 
 2. **Services**:
@@ -137,6 +139,10 @@ The deployment uses the following components:
 3. **Ingress**:
    - Use **Azure Kubernetes Ingress Controller** (`webapprouting.kubernetes.azure.com`) for routing traffic to services.
    - Provide secure HTTPS access to services with **TLS certificates** from **Let's Encrypt** (`clusterIssuer.yaml`).
+   - Suitable for routing requests under URLs such as:  
+     ```
+     fruitvision-${NAMESPACE}.${INGRESS_IP}.nip.io
+     ```
 
 4. **Secrets**:
    - Store sensitive credentials (e.g., MongoDB connection details) securely using Kubernetes Secrets.
@@ -152,7 +158,7 @@ Below is the architecture illustrating the Kubernetes deployment and traffic flo
 ```mermaid
 graph LR
   subgraph External Traffic
-    User -->|Requests| Ingress[Ingress Controller]
+    User -->|Requests to fruitvision-${NAMESPACE}.${INGRESS_IP}.nip.io| Ingress[Ingress Controller]
   end
   
   subgraph Kubernetes Cluster
@@ -165,6 +171,7 @@ graph LR
   
   BackendPods --> MongoDB[MongoDB]
   ModelPods --> PersistentStorage[Model Weights] 
+ 
 ```
 
 ## 🔧 Setup and Usage
