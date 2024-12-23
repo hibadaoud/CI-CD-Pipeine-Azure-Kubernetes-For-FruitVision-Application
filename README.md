@@ -100,7 +100,7 @@ The pipeline is divided into two main phases: **Continuous Integration** and **C
 ## ☸️ Kubernetes Architecture and Deployment
 
 ### Overview
-The Kubernetes architecture for the FruitVision project facilitates **scalable, secure, and automated deployment** of application services across multiple environments: **development**, **staging**, and **production**. Using Kubernetes Ingress, services are exposed to external users with load balancing and HTTPS encryption.
+The Kubernetes architecture for the FruitVision project facilitates **scalable, secure, and automated deployment** of application services across multiple environments: development, staging, and production. Using **Kubernetes Ingress**, services are exposed to external users with **load balancing** and **HTTPS encryption**.
 
 ### Goals
 1. **Service Management**: Efficiently manage multiple services (backend and model) using Kubernetes resources such as:
@@ -108,38 +108,41 @@ The Kubernetes architecture for the FruitVision project facilitates **scalable, 
    - **Services**: Enable internal communication and expose pods to external traffic.  
 
 2. **Dynamic Traffic Routing**: Use **Ingress** to expose services to the internet with SSL/TLS termination provided by **Let's Encrypt**, ensuring secure and efficient traffic handling.
+Integration with CI/CD Pipeline: Automate deployment and scaling through GitLab CI/CD pipelines for consistent and reliable service delivery.
 
-3. **Isolated Environments**:
+3. **Integration with CI/CD Pipeline**: Automate deployment and scaling through GitLab CI/CD pipelines for consistent and reliable service delivery.
+
+4. **Multi-Environment Support**: Support **distinct isolated** environments using namespaces and configurable replicas for resource scaling :
    - Each environment (development, staging, and production) operates in its own **namespace**.  
    - Isolation prevents configuration conflicts and ensures dedicated resources for each stage.  
    - GitLab provides a complete history of deployments for each environment, allowing for detailed tracking and the ability to **re-deploy** or **roll back** if needed.  
 
-4. **Stability and Recovery**:
+5. **Stability and Recovery**:
    - Rollback functionality ensures stability by enabling a return to a previous deployment in case of issues.  
    - Minimizes downtime and preserves reliability for end users.  
 
 ---
 
 ### Kubernetes Components
-The deployment uses the following key components:
+The deployment uses the following components:
 
 1. **Deployments**:
-   - Manage the desired state of application pods for **backend** and **model** services.
-   - Ensure scalability and availability through configurable replicas.
+   - Manage application pods for **backend** and **model** services.
+   - Ensure high availability with configurable replicas (`REPLICAS` in deploy.yaml).
 
 2. **Services**:
-   - Expose backend (`/nodejs`) and model (`/`) services internally using ClusterIP.  
-   - Facilitate communication between pods and other Kubernetes resources.
+   - Expose backend (`/nodejs`) and model (`/`) services internally using ClusterIP.
+   - Facilitate internal communication between pods.
 
 3. **Ingress**:
-   - Use **Azure Kubernetes Ingress Controller** (`webapprouting.kubernetes.azure.com`) for routing external traffic to services.  
-   - Handle secure HTTPS traffic with TLS certificates from **Let's Encrypt**.
+   - Use **Azure Kubernetes Ingress Controller** (`webapprouting.kubernetes.azure.com`) for routing traffic to services.
+   - Provide secure HTTPS access to services with **TLS certificates** from **Let's Encrypt** (`clusterIssuer.yaml`).
 
 4. **Secrets**:
-   - Securely store sensitive credentials like MongoDB connection details.
+   - Store sensitive credentials (e.g., MongoDB connection details) securely using Kubernetes Secrets.
 
 5. **Namespaces**:
-   - Separate environments into distinct namespaces to avoid conflicts and allow parallel deployments.
+   - Isolate environments to prevent configuration conflicts between development, staging, and production.
 
 ---
 
@@ -161,7 +164,7 @@ graph LR
   end
   
   BackendPods --> MongoDB[MongoDB]
-  ModelPods --> PersistentStorage[Model Weights]
+  ModelPods --> PersistentStorage[Model Weights] 
 ```
 
 ## 🔧 Setup and Usage
