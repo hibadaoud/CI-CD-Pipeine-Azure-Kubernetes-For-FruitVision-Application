@@ -196,7 +196,7 @@ To allow interaction with the Kubernetes cluster, the kubeconfig file was retrie
 The staging environment is managed using the **GitLab Kubernetes Agent**, allowing secure **bidirectional communication** between GitLab and the Kubernetes cluster.
 
 ### GitLab Agent Integration Diagram
-``` mermaid
+```mermaid
 graph TD
   GitLab[GitLab Server]
   subgraph GitLab Components
