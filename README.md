@@ -171,6 +171,50 @@ graph LR
  
 ```
 
+## ☸️ Kubernetes Cluster and CI/CD Integration
+
+### Cluster Creation
+- The Kubernetes cluster was created using the Azure CLI command:
+```bash
+az aks create --resource-group fruitvision_grp --name FruitVisionCluster --tier free --generate-ssh-keys --node-vm-size Standard_B2s --node-count 2 --enable-app-routing
+```
+- Key Flags Explained:
+
+  - --generate-ssh-keys: Automatically generates SSH keys for secure access to the Kubernetes nodes, simplifying authentication.
+  - --enable-app-routing: Configures an ingress controller (Azure Kubernetes Ingress Controller) for traffic routing, enabling secure and efficient access to application services.
+
+This cluster supports **development** and **production** namespaces:
+
+### Kubeconfig File
+To allow interaction with the Kubernetes cluster, the kubeconfig file was retrieved using:
+```
+  az aks get-credentials --resource-group fruitvision_grp --name FruitVisionCluster
+```
+- The kubeconfig file provides cluster authentication details and is integrated into GitLab CI/CD as a variable (`DEV_KUBE_CONFIG`) to enable automated deployments to the development and production namespaces.
+
+### Staging Environment and GitLab Agent
+The staging environment is managed using the **GitLab Kubernetes Agent**, allowing secure **bidirectional communication** between GitLab and the Kubernetes cluster.
+
+### GitLab Agent Integration Diagram
+```
+graph TD
+  GitLab[GitLab Server]
+  subgraph GitLab Components
+    CI/CD[Pipeline/Jobs]
+    KUBE[KubeConfig Variable]
+  end
+  subgraph Kubernetes Environments
+    DEV[Dev Namespace]
+    STAGING[Staging Namespace]
+    PROD[Production Namespace]
+  end
+  KAS[GitLab Agent (kas)]
+
+  GitLab --> KAS
+  KAS --> DEV
+  KAS --> STAGING
+  KAS --> PROD
+```
 ## 🔧 Setup and Usage
 
 ### Prerequisites
