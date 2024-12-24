@@ -199,26 +199,6 @@ The agent operates in a **client-server configuration**:
 - **agentk**: The cluster-side component installed in the Kubernetes cluster.
 - **KAS (GitLab Agent Server)**: The GitLab-side component that manages communication with the agent.
 
-#### GitLab Agent Integration Diagram
-```mermaid
-graph TD
-  GitLab[GitLab Server]
-  subgraph GitLab Components
-    CI/CD[Pipeline/Jobs]
-    KUBE[KubeConfig Variable]
-  end
-  subgraph Kubernetes Environments
-    DEV[Dev Namespace]
-    STAGING[Staging Namespace]
-    PROD[Production Namespace]
-  end
-  KAS[GitLab Agent KAS]
-
-  GitLab --> KAS
-  KAS --> DEV
-  KAS --> STAGING
-  KAS --> PROD
-```
 ## 🔧 Setup and Usage
 
 ### Prerequisites

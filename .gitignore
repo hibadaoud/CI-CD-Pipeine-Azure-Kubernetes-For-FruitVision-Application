@@ -27,3 +27,4 @@ FruitVision_application/*.iml
 /.idea/
 
 FruitVision_application/.env
+FruitVision_application/lib/firebase_options.dart
