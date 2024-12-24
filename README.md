@@ -212,7 +212,7 @@ graph TD
     STAGING[Staging Namespace]
     PROD[Production Namespace]
   end
-  KAS[GitLab Agent (KAS)]
+  KAS[GitLab Agent KAS]
 
   GitLab --> KAS
   KAS --> DEV
