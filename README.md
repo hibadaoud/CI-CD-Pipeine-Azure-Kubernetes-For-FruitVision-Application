@@ -171,9 +171,9 @@ graph LR
  
 ```
 
-## ☸️ Kubernetes Cluster and CI/CD Integration
+### Kubernetes Cluster and CI/CD Integration
 
-### Cluster Creation
+#### Cluster Creation
 - The Kubernetes cluster was created using the Azure CLI command:
 ```bash
 az aks create --resource-group fruitvision_grp --name FruitVisionCluster --tier free --generate-ssh-keys --node-vm-size Standard_B2s --node-count 2 --enable-app-routing
@@ -185,17 +185,21 @@ az aks create --resource-group fruitvision_grp --name FruitVisionCluster --tier 
 
 This cluster supports **development** and **production** namespaces
 
-### Kubeconfig File
+#### Kubeconfig File
 To allow interaction with the Kubernetes cluster, the kubeconfig file was retrieved using:
 ```
   az aks get-credentials --resource-group fruitvision_grp --name FruitVisionCluster
 ```
 - The kubeconfig file provides cluster authentication details and is integrated into GitLab CI/CD as a variable (`DEV_KUBE_CONFIG`) to enable automated deployments to the **development** and **production** namespaces.
 
-### Staging Environment and GitLab Agent
-The staging environment is managed using the **GitLab Kubernetes Agent**, allowing secure **bidirectional communication** between GitLab and the Kubernetes cluster.
+#### GitLab Agent Integration
+The **GitLab Kubernetes Agent** enables secure communication between GitLab and Kubernetes clusters. It eliminates the need to expose the Kubernetes API or store sensitive credentials in third-party systems. This integration ensures robust security and streamlined operations.
 
-### GitLab Agent Integration Diagram
+The agent operates in a **client-server configuration**:
+- **agentk**: The cluster-side component installed in the Kubernetes cluster.
+- **KAS (GitLab Agent Server)**: The GitLab-side component that manages communication with the agent.
+
+#### GitLab Agent Integration Diagram
 ```mermaid
 graph TD
   GitLab[GitLab Server]
@@ -207,8 +211,8 @@ graph TD
     DEV[Dev Namespace]
     STAGING[Staging Namespace]
     PROD[Production Namespace]
-  end 
-  KAS[GitLab Agent kas]
+  end
+  KAS[GitLab Agent (KAS)]
 
   GitLab --> KAS
   KAS --> DEV
