@@ -1,3 +1,4 @@
+import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'home.dart';
@@ -15,16 +16,55 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 String mood="" ;
-
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  await dotenv.load();
+  // Initialize Remote Config
+  final remoteConfig = FirebaseRemoteConfig.instance;
+  await remoteConfig.setConfigSettings(
+    RemoteConfigSettings(
+      fetchTimeout: Duration(seconds: 10),
+      minimumFetchInterval: Duration(seconds: 0), // Use 0 for instant fetch in testing
+    ),
+  );
+  await remoteConfig.fetchAndActivate();
+  await ApiConfig.fetchRemoteConfig();
+  //await dotenv.load();
   runApp(const MyApp());
 }
+
+class ApiConfig {
+  static String historyApi = "";
+  static String modelApi = "";
+
+  static Future<void> fetchRemoteConfig() async {
+    final remoteConfig = FirebaseRemoteConfig.instance;
+
+    try {
+      print('Fetching Remote Config...');
+      bool updated = await remoteConfig.fetchAndActivate();
+      print('Remote Config updated: $updated');
+
+      // Retrieve parameters
+      historyApi = remoteConfig.getString('HISTORY_API');
+      modelApi = remoteConfig.getString('MODEL_API');
+
+      // Debug logs to confirm values
+      print('HISTORY_API from Remote Config: $historyApi');
+      print('MODEL_API from Remote Config: $modelApi');
+
+      // Check for empty values
+      if (historyApi.isEmpty || modelApi.isEmpty) {
+        print('Error: One or both Remote Config values are empty.');
+      }
+    } catch (e) {
+      print('Error fetching Remote Config: $e');
+    }
+  }
+}
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

@@ -24,8 +24,8 @@ class _CameraState extends State<Camera> {
   List<CameraDescription>? _cameras;
   int _selectedCameraIdx = 0;
   List<dynamic> historyData = [];
-  final  MODEL_API = dotenv.env['MODEL_API'];
-  final  HISTORY_API = dotenv.env['HISTORY_API'];
+  //final  MODEL_API = dotenv.env['MODEL_API'];
+  //final  HISTORY_API = dotenv.env['HISTORY_API'];
 
   @override
   void initState() {
@@ -93,16 +93,47 @@ class _CameraState extends State<Camera> {
 
   Future<void> _sendImageToServer(File imageFile) async {
     try {
-      final uri = Uri.parse(MODEL_API! + '/analyze/');
-      final request = http.MultipartRequest('POST', uri)
-        ..files.add(await http.MultipartFile.fromPath(
-          'file',
-          imageFile.path,
-        ));
+      print(ApiConfig.modelApi);
+      final uri = Uri.parse(ApiConfig.modelApi! + '/analyze/');
+      int retryCount = 0;
+      const maxRetries = 2;
+      http.StreamedResponse? streamedResponse;
 
-      final streamedResponse = await request.send();
+      while (retryCount < maxRetries) {
+        retryCount++;
+        try {
+          // Create a new instance of the request for each attempt
+          final request = http.MultipartRequest('POST', uri)
+            ..files.add(await http.MultipartFile.fromPath(
+              'file',
+              imageFile.path,
+            ));
+
+          // Send the request
+          streamedResponse = await request.send();
+          if (streamedResponse.statusCode == 200) {
+            break; // Exit the loop if the request is successful
+          } else {
+            print('Request failed with status code: ${streamedResponse.statusCode}');
+          }
+        } catch (e) {
+          print('Error during request attempt $retryCount: $e');
+        }
+
+        if (retryCount < maxRetries) {
+          print('Retrying request...');
+          await Future.delayed(Duration(seconds: 1)); // Optional delay between retries
+        }
+      }
+
+      // If all attempts failed
+      if (streamedResponse == null || streamedResponse.statusCode != 200) {
+        print('Failed to send request after $maxRetries attempts.');
+        return;
+      }
+
+      // Process the response
       final response = await http.Response.fromStream(streamedResponse);
-
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
         final analysisResults = responseData['analysis'];
@@ -121,7 +152,21 @@ class _CameraState extends State<Camera> {
           // Toutes les valeurs sont non-nulles, envoyez les données
           await sendData(type, resultText, full_url);
         }
+        // First attempt to fetch the image
+        bool success = await _tryFetchImage(full_url);
+
+        // If the first attempt fails, try again
+        if (!success) {
+          print('Retrying image fetch...');
+          success = await _tryFetchImage(full_url);
+          if (!success) {
+            print('Error: Failed to fetch image after two attempts.');
+            return;
+          }
+        }
+
         final imagePath = responseData['image_url'];
+        print('Image URL: $imagePath');
         if (imagePath != null && analysisResults != null) {
 
           Navigator.push(
@@ -147,6 +192,21 @@ class _CameraState extends State<Camera> {
     }
   }
 
+  Future<bool> _tryFetchImage(String imageUrl) async {
+    try {
+      final response = await http.get(Uri.parse(imageUrl));
+      if (response.statusCode == 200) {
+        print('Image successfully fetched.');
+        return true;
+      } else {
+        print('Error: Failed to fetch image. Status code: ${response.statusCode}');
+        return false;
+      }
+    } catch (e) {
+      print('Exception while fetching image: $e');
+      return false;
+    }
+  }
 
 
 // Add this function to your _CameraState class
@@ -157,7 +217,7 @@ class _CameraState extends State<Camera> {
       }
       final numberMatch = RegExp(r'\d+').firstMatch(resultText);
       String? number = numberMatch != null ? numberMatch.group(0) : 'No number found';
-      final uri = Uri.parse(HISTORY_API! + '/api/history'); // Update with your server's URL
+      final uri = Uri.parse(ApiConfig.historyApi! + '/api/history'); // Update with your server's URL
       final headers = {"Content-Type": "application/json"};
       final body = jsonEncode({
         "type": type,
