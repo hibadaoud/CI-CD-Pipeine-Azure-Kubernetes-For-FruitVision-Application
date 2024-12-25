@@ -1,19 +1,15 @@
 # CI/CD Pipeline on Gitlab for FruitVision application: AI-Powered Fruit Counting & Classification deployed with Azure Kubernetes
 
-## CONSIDERATION:
-
--The original application was stored in gitlab. It was only moved to this github repository for reach and visibility reasons. Therefore, it is highly recommended that you clone it from the original repository if you wish to try this project!
-
--GITLAB REPOSITORY: [CLICK THIS LINK](https://gitlab.com/supspace/supspace-collaboration-platform)
-
-
 ## 📖 **Table of Contents**
 
 - [📌 Project Overview](#-project-overview)
+- [🌱 About the Original Project](#-about-the-original-project)
 - [🔑 Key Objectives](#-key-objectives)  
 - [⚙️ Technologies Used](#️-technologies-used)  
-- [🏛️ Architecture](#️-architecture)  
-- [📝 Stages Breakdown](#-stages-breakdown)  
+- [🏛️ Architecture](#-architecture)  
+- [☸️ Kubernetes Architecture and Deployment](#-kubernetes-architecture-and-deployment)  
+- [🌐 Firebase Remote Config Integration](#-firebase-remote-config-integration)
+- [📊 Results: CI/CD pipeline](#-results-cicd-pipeline)
 - [🔧 Setup and Usage](#-setup-and-usage)  
 - [🔮 Future Considerations](#-future-considerations) 
 - [👨‍💻 Project By](#project-by) 
@@ -193,11 +189,143 @@ To allow interaction with the Kubernetes cluster, the kubeconfig file was retrie
 - The kubeconfig file provides cluster authentication details and is integrated into GitLab CI/CD as a variable (`DEV_KUBE_CONFIG`) to enable automated deployments to the **development** and **production** namespaces.
 
 #### GitLab Agent Integration
-The **GitLab Kubernetes Agent** enables secure communication between GitLab and Kubernetes clusters. It eliminates the need to expose the Kubernetes API or store sensitive credentials in third-party systems. This integration ensures robust security and streamlined operations.
+For the **staging deployment**, the **GitLab Kubernetes Agent** was used. 
+- It enables secure communication between GitLab and Kubernetes clusters. 
+- It eliminates the need to expose the Kubernetes API or store sensitive credentials in third-party systems. This integration ensures robust security and streamlined operations.
 
-The agent operates in a **client-server configuration**:
-- **agentk**: The cluster-side component installed in the Kubernetes cluster.
-- **KAS (GitLab Agent Server)**: The GitLab-side component that manages communication with the agent.
+- The agent operates in a **client-server configuration**:
+  - **agentk**: The cluster-side component installed in the Kubernetes cluster.
+  - **KAS (GitLab Agent Server)**: The GitLab-side component that manages communication with the agent.
+
+## 🌐 Firebase Remote Config Integration
+
+- Firebase Remote Config **dynamically updates configuration parameters**, such as deployment URLs (e.g., **model API** and **history API**), without requiring manual changes. This eliminates the need for hardcoded URLs in the Flutter application and ensures **real-time synchronization** between **deployed services** and the **flutter application**. 
+
+- Integrated with GitLab CI/CD, Firebase Remote Config automates updates **after each successful production deployment**, reducing manual intervention and enhancing **scalability**, **reliability**, and **seamless app deployment**.
+
+### 🚀 **Usage in GitLab CI/CD**
+
+In the GitLab CI/CD pipeline, Firebase Remote Config is used to update the **MODEL_API** and **HISTORY_API** keys after deploying the backend and model services.
+
+#### **GitLab CI/CD Configuration**
+```yaml
+update_firebase_config:
+    stage: post-deploy
+    needs:
+      - k8s_prod_fastapi_integration_testing
+      - k8s_prod_backend_integration_testing
+    before_script:
+      # Install required dependencies
+      - apt-get update -qq 
+      - apt-get install -y gettext curl jq
+      - envsubst --version
+
+      # Install Google Cloud SDK
+      - curl -sSL https://sdk.cloud.google.com | bash
+      - export PATH="$PATH:/root/google-cloud-sdk/bin"
+    script:
+     # Authenticate with Google Cloud using the Service Account
+      - gcloud auth activate-service-account --key-file=serviceAccountKey.json --quiet
+
+      # Get OAuth 2.0 Access Token
+      - export ACCESS_TOKEN=$(gcloud auth print-access-token --scopes=https://www.googleapis.com/auth/firebase.remoteconfig)
+      - echo "Access Token obtained successfully."
+
+      # Generate Remote Config JSON file
+      - envsubst < remote-config.template.json > remote-config.json
+      - echo "Generated Remote Config JSON:"
+      - cat remote-config.json
+
+      # Deploy Remote Config using Firebase REST API
+      - |
+        curl -X PUT \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            -H "Content-Type: application/json; UTF-8" \
+            -H "If-Match: *" \
+            -d @remote-config.json \
+            "https://firebaseremoteconfig.googleapis.com/v1/projects/$FIREBASE_PROJECT_ID/remoteConfig"
+
+      - echo "Firebase Remote Config updated successfully with new values."
+    environment:
+      name: production
+```
+1. **Authentication**:
+   - Activates a Google Cloud Service Account (`serviceAccountKey.json`) and retrieves an OAuth 2.0 Access Token.
+2. **Configuration Generation**:
+   - Generates a `remote-config.json` file by replacing placeholders in the `remote-config.template.json` with the deployed URLs.
+   ```
+   {
+    "parameters": {
+      "HISTORY_API": {
+        "defaultValue": { "value": "https://${INGRESS_URL}/nodejs" }
+      },
+      "MODEL_API": {
+        "defaultValue": { "value": "https://${INGRESS_URL}" }
+      }
+    }
+   }
+   ```
+3. **Firebase Update**:
+   - Sends the updated configuration to Firebase using the Firebase REST API to reflect new endpoint URLs.
+4. **Dependencies**:
+   - Runs after successful integration testing (`k8s_prod_fastapi_integration_testing` and `k8s_prod_backend_integration_testing`).
+### 📱 **Integration in Flutter Application**
+
+In the Flutter application, Firebase Remote Config is initialized and used to dynamically load the API URLs for the backend services.
+
+#### **Initialization in `main.dart`**
+```dart
+import 'package:firebase_remote_config/firebase_remote_config.dart';
+
+class ApiConfig {
+  static String historyApi = "";
+  static String modelApi = "";
+
+  static Future<void> fetchRemoteConfig() async {
+    final remoteConfig = FirebaseRemoteConfig.instance;
+
+    try {
+      print('Fetching Remote Config...');
+      bool updated = await remoteConfig.fetchAndActivate();
+      print('Remote Config updated: $updated');
+
+      // Retrieve parameters
+      historyApi = remoteConfig.getString('HISTORY_API');
+      modelApi = remoteConfig.getString('MODEL_API');
+
+      // Debug logs to confirm values
+      print('HISTORY_API: $historyApi');
+      print('MODEL_API: $modelApi');
+
+    } catch (e) {
+      print('Error fetching Remote Config: $e');
+    }
+  }
+}
+```
+
+- **Steps**:
+  1. **Initialize Firebase Remote Config** in the `main` function.
+  2. **Fetch and Activate** the latest configurations.
+  3. Store the **MODEL_API** and **HISTORY_API** in static variables for global access.
+
+#### **Usage in Camera Widget**
+The `Camera` widget utilizes the `ApiConfig` class to send images for analysis to the model API.
+```dart
+final uri = Uri.parse(ApiConfig.modelApi + '/analyze/');
+final request = http.MultipartRequest('POST', uri);
+request.files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+```
+
+## 📊 Results: CI/CD pipeline
+
+<div align="center">
+    <img src="./images/feature.png" alt="CI/CD pipeline feature">
+</div>
+
+<div align="center">
+    <img src="./images/main_pipeline.png" alt="CI/CD pipeline main">
+</div>
 
 ## 🔧 Setup and Usage
 
@@ -329,15 +457,32 @@ Once the `stage-deploy` stage on the `main` branch is successful ✅:
 
 ## 🔮 Future Considerations
 
+1. **Optimization of Deployed Services**:  
+   Future iterations of the project could focus on optimizing the deployed services to improve performance and resource efficiency. This includes:
+   - Fine-tuning Kubernetes resource allocation (e.g., CPU and memory limits) to match the workload requirements while minimizing costs.
+   - Implementing autoscaling policies for pods based on real-time traffic patterns and load metrics.
+   - Enhancing the monitoring setup with tools like Prometheus and Grafana to gain deeper insights into application performance, identify bottlenecks, and ensure reliability under varying conditions.
+
+2. **Canary Deployment for Progressive Rollouts**:  
+   Implementing a canary deployment strategy would allow rolling out updates to a subset of users before fully deploying to all users. This approach reduces risks associated with deploying new versions by:
+   - Gradually splitting traffic between the existing and new versions, ensuring stable functionality.
+   - Using user feedback and monitoring metrics (e.g., error rates, latency) to validate the new version's performance.
+   - Automating rollback mechanisms to revert to the previous version if any issues are detected during the canary rollout.
+
+3. **Integration of Continuous Security Practices**:  
+   Security enhancements can be integrated into the CI/CD pipeline to ensure robust protection of the application and user data:
+   - Adding runtime security checks to detect anomalies in deployed services.
+   - Utilizing Kubernetes features like Pod Security Policies and Network Policies to limit attack surfaces and enforce security best practices.
+
+
 ## 👨‍💻 Project by  
-
-<!-- <a href="https://github.com/hibadaoud" target="_blank" style="display: inline-block; text-decoration: none;">
-  <img src="https://github.com/hibadaoud.png" alt="Profile Image" width="100" style="border-radius:50%;"/>
-</a>   -->
-
-<a href="https://https://github.com/hbadaoud/CI-CD-Pipeine-Azure-Kubernetes-For-FruitVision-Application/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=hibadaoud/CI-CD-Pipeine-Azure-Kubernetes-For-FruitVision-Application" />
+<a href="https://github.com/hibadaoud">
+  <img src="https://avatars.githubusercontent.com/u/153644549?s=96&v=4" width="100" height="100" alt="Hiba Daoud">
 </a>
+<a href="https://github.com/faraheloumi">
+  <img src="https://avatars.githubusercontent.com/u/137284626?v=4" width="100" height="100" alt="Farah Elloumi">
+</a>
+
 
 
 
