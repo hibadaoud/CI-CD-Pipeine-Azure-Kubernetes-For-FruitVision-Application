@@ -476,13 +476,9 @@ Once the `stage-deploy` stage on the `main` branch is successful ✅:
 
 
 ## 👨‍💻 Project by  
-<a href="https://github.com/hibadaoud">
-  <img src="https://avatars.githubusercontent.com/u/153644549?s=96&v=4" width="100" height="100" alt="Hiba Daoud">
+<a href="https://github.com/hibadaoud/hibadaoud/FruitVision-AI-Powered-Fruit-Counting-Classification-with-Docker-Containerization-and-Terraform/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=hibadaoud/FruitVision-AI-Powered-Fruit-Counting-Classification-with-Docker-Containerization-and-Terraform"/>
 </a>
-<a href="https://github.com/faraheloumi">
-  <img src="https://avatars.githubusercontent.com/u/137284626?v=4" width="100" height="100" alt="Farah Elloumi">
-</a>
-
 
 
 
