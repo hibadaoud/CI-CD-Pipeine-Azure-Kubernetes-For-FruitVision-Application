@@ -21,6 +21,8 @@ This repository extends the [FruitVision-AI-Powered-Fruit-Counting-Classificatio
 
 This pipeline enhances the original project by automating complex workflows, improving reliability, and reducing deployment time.  
 
+This is a project by Hiba Daoud realized for learning purposes.
+
 ### 🌱 **About the Original Project**
 
 The original **FruitVision** project focuses on developing a deep learning computer vision model to detect, classify, and count fruits on trees. The model is integrated into a user-friendly application with a backend (NodeJs) and a persistent database (MongoDB) to track the history of predictions. The application is containerized using Docker and deployed using automated infrastructure provisioning for scalability (Terraform).
@@ -476,8 +478,8 @@ Once the `stage-deploy` stage on the `main` branch is successful ✅:
 
 
 ## 👨‍💻 Project by  
-<a href="https://github.com/hibadaoud/hibadaoud/FruitVision-AI-Powered-Fruit-Counting-Classification-with-Docker-Containerization-and-Terraform/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=hibadaoud/FruitVision-AI-Powered-Fruit-Counting-Classification-with-Docker-Containerization-and-Terraform"/>
+<a href="https://github.com/hibadaoud/hibadaoud/CI-CD-Pipeine-Azure-Kubernetes-For-FruitVision-Application/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=hibadaoud/CI-CD-Pipeine-Azure-Kubernetes-For-FruitVision-Application"/>
 </a>
 
 
